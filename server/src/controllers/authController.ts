@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/User";
+import { createUser, findUserByEmail, findUserById } from "../models/User";
 import { AuthenticatedRequest } from "../middleware/auth";
 
 const generateToken = (id: string, role: string) => {
@@ -13,13 +13,13 @@ const generateToken = (id: string, role: string) => {
 export const register = async (req: Request, res: Response) => {
   const { name, surname, email, password } = req.body;
 
-  const exists = await User.findOne({ email });
+  const exists = await findUserByEmail(email);
   if (exists) {
     return res.status(400).json({ message: "Email already exists" });
   }
 
   const hashed = await bcrypt.hash(password, 10);
-  const user = await User.create({
+  const user = await createUser({
     name,
     surname,
     email,
@@ -36,6 +36,7 @@ export const register = async (req: Request, res: Response) => {
       surname: user.surname,
       email: user.email,
       role: user.role,
+      isAdmin: user.role === "admin",
     },
   });
 };
@@ -43,7 +44,7 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await findUserByEmail(email);
   if (!user) {
     return res.status(400).json({ message: "Invalid email or password" });
   }
@@ -63,6 +64,7 @@ export const login = async (req: Request, res: Response) => {
       surname: user.surname,
       email: user.email,
       role: user.role,
+      isAdmin: user.role === "admin",
     },
   });
 };
@@ -72,7 +74,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response) => {
     return res.status(401).json({ message: "Authentication required" });
   }
 
-  const user = await User.findById(req.user.id).select("-password");
+  const user = await findUserById(req.user.id);
 
   if (!user) {
     return res.status(404).json({ message: "User not found" });
@@ -84,5 +86,6 @@ export const getMe = async (req: AuthenticatedRequest, res: Response) => {
     surname: user.surname,
     email: user.email,
     role: user.role,
+    isAdmin: user.role === "admin",
   });
 };

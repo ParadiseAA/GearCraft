@@ -1,19 +1,20 @@
+import { Link } from "react-router-dom";
 import {
-  TiAdjustBrightness,
-  TiCogOutline,
-  TiFlashOutline,
+  TiHeartFullOutline,
+  TiHeartOutline,
   TiShoppingCart,
-  TiSpannerOutline,
   TiStarFullOutline,
   TiStarHalfOutline,
   TiStarOutline,
   TiThLargeOutline,
 } from "react-icons/ti";
+import { getProductId, getProductStock, useShopStore } from "../store/shopStore";
 import type { Product } from "../types/product";
 
 function RatingRow({ rating, reviews }: { rating: number; reviews: number }) {
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 !== 0;
+  const safeRating = Math.min(Math.max(rating, 0), 5);
+  const fullStars = Math.floor(safeRating);
+  const hasHalfStar = safeRating % 1 !== 0;
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
 
   return (
@@ -32,77 +33,92 @@ function RatingRow({ rating, reviews }: { rating: number; reviews: number }) {
   );
 }
 
-function getCategoryLabel(category: string) {
-  const labels: Record<string, string> = {
-    phones: "Телефони",
-    laptops: "Ноутбуки",
-    tablets: "Планшети",
-    accessories: "Аксесуари",
-    audio: "Аудіо",
-    cameras: "Камери",
-    other: "Інше",
-  };
-
-  return labels[category] ?? category;
-}
-
-function getCategoryIcon(category: string) {
-  const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-    phones: TiFlashOutline,
-    laptops: TiCogOutline,
-    tablets: TiThLargeOutline,
-    accessories: TiSpannerOutline,
-    audio: TiAdjustBrightness,
-    cameras: TiAdjustBrightness,
-    other: TiThLargeOutline,
-  };
-
-  return icons[category] ?? TiThLargeOutline;
-}
-
 export default function ProductCard({ product }: { product: Product }) {
-  const CategoryIcon = getCategoryIcon(product.category);
+  const imageSrc = product.image || product.images[0];
+  const title = product.name || product.title;
+  const productId = getProductId(product);
+  const productUrl = `/products/${productId}`;
+  const addToCart = useShopStore((state) => state.addToCart);
+  const toggleFavorite = useShopStore((state) => state.toggleFavorite);
+  const isFavorite = useShopStore((state) => state.isFavorite(productId));
+  const quantityInCart = useShopStore(
+    (state) =>
+      state.cart.find((item) => getProductId(item.product) === productId)
+        ?.quantity ?? 0,
+  );
+  const stock = getProductStock(product);
+  const isAvailable = stock > 0;
+  const isMaxInCart = quantityInCart >= stock;
 
   return (
-    <article className="group overflow-hidden rounded-[22px] border border-[#eadfd3] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.12)]">
-      <div className="relative flex h-[250px] items-center justify-center overflow-hidden bg-gradient-to-br from-[#f8f5ef] via-white to-[#ece6dc]">
-        <div className="absolute inset-4 rounded-[26px] border border-[#ff7a1a]/10" />
-        <div className="absolute -right-8 top-6 h-24 w-24 rounded-full border border-[#ff7a1a]/10" />
-        <div className="absolute bottom-4 left-4 rounded-full border border-[#ff7a1a]/12 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d86b12]">
-          {getCategoryLabel(product.category)}
-        </div>
-
-        {product.images[0] ? (
-          <img
-            src={product.images[0]}
-            alt={product.title}
-            className="relative h-[190px] w-[190px] object-contain"
-          />
-        ) : (
-          <div className="relative flex h-32 w-32 items-center justify-center rounded-[32px] bg-[linear-gradient(145deg,rgba(255,122,26,0.14),rgba(255,255,255,0.92))] shadow-[0_18px_35px_rgba(0,0,0,0.12)]">
-            <CategoryIcon className="text-[68px] text-[#1b1a16]" />
+    <article className="group overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-[0_10px_28px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#f2c39c] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)]">
+      <div className="relative">
+        <Link to={productUrl} className="block">
+          <div className="flex h-[260px] items-center justify-center bg-[#faf8f4] p-5">
+            {imageSrc ? (
+              <img
+                src={imageSrc}
+                alt={title}
+                className={`h-full w-full object-contain transition duration-300 group-hover:scale-[1.03] ${
+                  isAvailable ? "" : "opacity-45 grayscale"
+                }`}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-xl bg-white">
+                <TiThLargeOutline className="text-[72px] text-[#cdbca9]" />
+              </div>
+            )}
           </div>
+        </Link>
+
+        {!isAvailable && (
+          <span className="absolute left-3 top-3 rounded-full bg-[#fff4eb] px-3 py-1 text-xs font-semibold text-[#a64e0d] shadow-[0_8px_22px_rgba(0,0,0,0.08)]">
+            Немає в наявності
+          </span>
         )}
+
+        <button
+          type="button"
+          onClick={() => toggleFavorite(product)}
+          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#eadfd3] bg-white/95 text-[#ff7a1a] shadow-[0_8px_22px_rgba(0,0,0,0.1)] transition hover:bg-[#fff4eb]"
+          aria-label={isFavorite ? "Прибрати з обраного" : "Додати в обране"}
+        >
+          {isFavorite ? (
+            <TiHeartFullOutline className="text-[24px]" />
+          ) : (
+            <TiHeartOutline className="text-[24px]" />
+          )}
+        </button>
       </div>
 
       <div className="p-5">
-        <h3 className="text-lg font-semibold text-[#171612]">{product.title}</h3>
-        <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-[#6d5c4f]">
-          {product.description}
-        </p>
+        <Link to={productUrl} className="block">
+          <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-[#d86b12]">
+            {product.category}
+          </p>
+          <h3 className="mt-2 text-xl font-semibold leading-6 text-[#171612] transition group-hover:text-[#d86b12]">
+            {title}
+          </h3>
+        </Link>
+
         <p className="mt-3 text-lg font-semibold tracking-[-0.01em] text-[#171612]">
           ₴{product.price.toLocaleString("uk-UA")}
         </p>
         <div className="mt-3">
           <RatingRow rating={product.rating} reviews={product.reviewsCount} />
         </div>
-
         <button
           type="button"
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7a1a] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110"
+          onClick={() => addToCart(product)}
+          disabled={!isAvailable || isMaxInCart}
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7a1a] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#cdbca9] disabled:hover:brightness-100"
         >
           <TiShoppingCart className="text-xl" />
-          Додати в кошик
+          {!isAvailable
+            ? "Немає в наявності"
+            : quantityInCart > 0
+              ? `У кошику: ${quantityInCart}`
+              : "Додати в кошик"}
         </button>
       </div>
     </article>

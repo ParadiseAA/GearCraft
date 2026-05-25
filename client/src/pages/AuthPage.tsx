@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router-dom";
-import { TiArrowRight } from "react-icons/ti";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 
 const accentColor = "#ff7a1a";
@@ -32,6 +31,8 @@ type RegisterData = z.infer<typeof registerSchema>;
 function LoginForm() {
   const { login, isLoading, error, user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirect = new URLSearchParams(location.search).get("redirect") || "/";
 
   const {
     register,
@@ -42,8 +43,8 @@ function LoginForm() {
   });
 
   useEffect(() => {
-    if (user) navigate("/");
-  }, [user, navigate]);
+    if (user) navigate(redirect);
+  }, [user, navigate, redirect]);
 
   const onSubmit = async (data: LoginData) => {
     await login(data.email, data.password);
@@ -55,18 +56,20 @@ function LoginForm() {
       className="mt-6 flex flex-col gap-4"
     >
       {error && (
-        <p className="rounded-2xl border border-[#4a1f12] bg-[#26130d] px-4 py-3 text-center text-sm text-[#ffb067]">
+        <p className="rounded-2xl bg-[#ff00008c] px-4 py-3 text-center text-sm text-[#ffffff]">
           {error}
         </p>
       )}
 
       <div>
-        <label className="mb-1 block text-sm text-[#c7b7a4]">Email адреса</label>
+        <label className="mb-1 block text-sm text-[#818080]">
+          Email адреса
+        </label>
         <input
           {...register("email")}
-          placeholder="admin@example.com"
+          placeholder="user1234@example.com"
           type="email"
-          className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+          className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
         />
         {errors.email && (
           <p className="mt-1 text-xs text-[#ff9a4d]">{errors.email.message}</p>
@@ -74,15 +77,17 @@ function LoginForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-[#c7b7a4]">Пароль</label>
+        <label className="mb-1 block text-sm text-[#818080]">Пароль</label>
         <input
           {...register("password")}
           placeholder="••••••"
           type="password"
-          className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+          className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#bababa] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
         />
         {errors.password && (
-          <p className="mt-1 text-xs text-[#ff9a4d]">{errors.password.message}</p>
+          <p className="mt-1 text-xs text-[#ff9a4d]">
+            {errors.password.message}
+          </p>
         )}
       </div>
 
@@ -93,7 +98,6 @@ function LoginForm() {
         style={{ backgroundColor: accentColor }}
       >
         {isLoading ? "Завантаження..." : "Увійти"}
-        {!isLoading && <TiArrowRight className="text-xl" />}
       </button>
     </form>
   );
@@ -102,6 +106,8 @@ function LoginForm() {
 function RegisterForm() {
   const { register: registerUser, isLoading, error, user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirect = new URLSearchParams(location.search).get("redirect") || "/";
 
   const {
     register,
@@ -112,8 +118,8 @@ function RegisterForm() {
   });
 
   useEffect(() => {
-    if (user) navigate("/");
-  }, [user, navigate]);
+    if (user) navigate(redirect);
+  }, [user, navigate, redirect]);
 
   const onSubmit = async (data: RegisterData) => {
     await registerUser(data.name, data.surname, data.email, data.password);
@@ -125,18 +131,18 @@ function RegisterForm() {
       className="mt-6 flex flex-col gap-4"
     >
       {error && (
-        <p className="rounded-2xl border border-[#4a1f12] bg-[#26130d] px-4 py-3 text-center text-sm text-[#ffb067]">
+        <p className="rounded-2xl bg-[#ff00008c] px-4 py-3 text-center text-sm text-[#ffffff]">
           {error}
         </p>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm text-[#c7b7a4]">Ім'я</label>
+          <label className="mb-1 block text-sm text-[#818080]">Ім'я</label>
           <input
             {...register("name")}
             placeholder="Андрій"
-            className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+            className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
           />
           {errors.name && (
             <p className="mt-1 text-xs text-[#ff9a4d]">{errors.name.message}</p>
@@ -144,11 +150,11 @@ function RegisterForm() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm text-[#c7b7a4]">Прізвище</label>
+          <label className="mb-1 block text-sm text-[#818080]">Прізвище</label>
           <input
             {...register("surname")}
             placeholder="Шевченко"
-            className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+            className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
           />
           {errors.surname && (
             <p className="mt-1 text-xs text-[#ff9a4d]">
@@ -159,12 +165,14 @@ function RegisterForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-[#c7b7a4]">Email адреса</label>
+        <label className="mb-1 block text-sm text-[#818080]">
+          Email адреса
+        </label>
         <input
           {...register("email")}
-          placeholder="admin@example.com"
+          placeholder="user1234@example.com"
           type="email"
-          className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+          className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
         />
         {errors.email && (
           <p className="mt-1 text-xs text-[#ff9a4d]">{errors.email.message}</p>
@@ -172,27 +180,29 @@ function RegisterForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-[#c7b7a4]">Пароль</label>
+        <label className="mb-1 block text-sm text-[#818080]">Пароль</label>
         <input
           {...register("password")}
           placeholder="••••••"
           type="password"
-          className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+          className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
         />
         {errors.password && (
-          <p className="mt-1 text-xs text-[#ff9a4d]">{errors.password.message}</p>
+          <p className="mt-1 text-xs text-[#ff9a4d]">
+            {errors.password.message}
+          </p>
         )}
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-[#c7b7a4]">
+        <label className="mb-1 block text-sm text-[#818080]">
           Підтвердити пароль
         </label>
         <input
           {...register("confirmPassword")}
           placeholder="••••••"
           type="password"
-          className="w-full rounded-2xl border border-[#3b2a1b] bg-[#121212] px-4 py-3 text-sm text-[#fff2e5] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+          className="w-full rounded-2xl border border-[#bababa] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none transition placeholder:text-[#7e6c5d] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
         />
         {errors.confirmPassword && (
           <p className="mt-1 text-xs text-[#ff9a4d]">
@@ -208,7 +218,6 @@ function RegisterForm() {
         style={{ backgroundColor: accentColor }}
       >
         {isLoading ? "Завантаження..." : "Зареєструватись"}
-        {!isLoading && <TiArrowRight className="text-xl" />}
       </button>
     </form>
   );
@@ -218,27 +227,25 @@ export default function AuthPage() {
   const [tab, setTab] = useState<"login" | "register">("login");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#111111] px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-[#fbf9f9] px-4 py-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,122,26,0.14),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(255,122,26,0.08),transparent_22%)]" />
-      <div className="relative w-full max-w-md rounded-[28px] border border-[#2e241d] bg-[#191919] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
-        <div className="mb-2 flex rounded-2xl border border-[#2b2119] bg-[#111111] p-1">
+      <div className="relative w-full max-w-md rounded-[28px] bg-[#ffffff] p-8 shadow-lg">
+        <div className="mb-2 flex rounded-2xl border border-[#bababa] bg-[#faf6f6] p-1">
           <button
             onClick={() => setTab("login")}
             className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
-              tab === "login"
-                ? "text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
-                : "text-[#8d7c6e]"
+              tab === "login" ? "text-white shadow-lg" : "text-[#8d7c6e]"
             }`}
-            style={tab === "login" ? { backgroundColor: accentColor } : undefined}
+            style={
+              tab === "login" ? { backgroundColor: accentColor } : undefined
+            }
           >
             Вхід
           </button>
           <button
             onClick={() => setTab("register")}
             className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
-              tab === "register"
-                ? "text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
-                : "text-[#8d7c6e]"
+              tab === "register" ? "text-white shadow-lg" : "text-[#8d7c6e]"
             }`}
             style={
               tab === "register" ? { backgroundColor: accentColor } : undefined
@@ -252,10 +259,10 @@ export default function AuthPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff9a4d]">
             GearCraft
           </p>
-          <h1 className="mt-3 text-3xl font-black text-[#fff4e8]">
-            {tab === "login" ? "Повернення до майстерні" : "Створити акаунт"}
+          <h1 className="mt-3 text-3xl font-black text-[#323232]">
+            {tab === "login" ? "Авторизація" : "Створити акаунт"}
           </h1>
-          <p className="mt-2 text-sm text-[#9a8c7d]">
+          <p className="mt-2 text-sm text-[#818080]">
             {tab === "login"
               ? "Увійдіть, щоб керувати замовленнями та збереженими виробами."
               : "Заповніть форму, щоб зберігати обране та оформлювати замовлення."}

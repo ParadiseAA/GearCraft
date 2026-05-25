@@ -1,13 +1,100 @@
-import mongoose from "mongoose";
+import "dotenv/config";
+import { Pool } from "pg";
+
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set");
+}
+
+const pool = new Pool({
+  connectionString,
+  ssl:
+    process.env.PGSSLMODE === "disable"
+      ? false
+      : {
+          rejectUnauthorized: false,
+        },
+});
 
 const connectDB = async (): Promise<void> => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI as string);
-    console.log(`MongoDB підключено: ${conn.connection.host}`);
+    await pool.query("CREATE EXTENSION IF NOT EXISTS pgcrypto");
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        surname TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title TEXT NOT NULL CHECK (char_length(title) <= 200),
+        description TEXT NOT NULL CHECK (char_length(description) <= 5000),
+        description_uk TEXT,
+        description_en TEXT,
+        price NUMERIC(12, 2) NOT NULL CHECK (price >= 0),
+        category TEXT NOT NULL CHECK (char_length(category) <= 120),
+        images TEXT[] NOT NULL DEFAULT '{}',
+        stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+        seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        rating NUMERIC(3, 2) NOT NULL DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+        reviews_count INTEGER NOT NULL DEFAULT 0 CHECK (reviews_count >= 0),
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS description_uk TEXT
+    `);
+    await pool.query(`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS description_en TEXT
+    `);
+    await pool.query(`
+      ALTER TABLE products
+      DROP COLUMN IF EXISTS brand
+    `);
+    await pool.query(`
+      ALTER TABLE products
+      DROP CONSTRAINT IF EXISTS products_category_check
+    `);
+    await pool.query(`
+      ALTER TABLE products
+      ADD CONSTRAINT products_category_check CHECK (char_length(category) <= 120)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS products_category_idx ON products(category)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS products_price_idx ON products(price)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS products_seller_id_idx ON products(seller_id)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS products_search_idx
+      ON products USING GIN (to_tsvector('simple', title || ' ' || description))
+    `);
+
+    const { rows } = await pool.query("SELECT current_database() AS db");
+    console.log(`PostgreSQL connected: ${rows[0].db}`);
   } catch (error) {
-    console.error("Помилка підключення до MongoDB:", error);
+    console.error("PostgreSQL connection error:", error);
     process.exit(1);
   }
 };
 
+export { pool };
 export default connectDB;

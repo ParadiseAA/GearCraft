@@ -10,8 +10,3 @@ body {
   background: #ffffff;
   color: #171612;
 }
-
-::selection {
-  background: rgba(255, 122, 26, 0.35);
-  color: #fff4e8;
-}

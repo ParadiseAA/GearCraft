@@ -12,6 +12,7 @@ interface User {
   surname: string;
   email: string;
   role: "user" | "admin";
+  isAdmin?: boolean;
 }
 
 interface AuthResponse {

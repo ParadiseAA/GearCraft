@@ -1,9 +1,15 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AdminRoute from "./components/AdminRoute";
 import GuestRoute from "./components/GuestRoute";
+import SiteFooter from "./components/SiteFooter";
+import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
+import CartPage from "./pages/CartPage";
 import CatalogPage from "./pages/CatalogPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import HomePage from "./pages/HomePage";
+import ProductPage from "./pages/ProductPage";
 import { useAuthStore } from "./store/authStore";
 
 export default function App() {
@@ -18,11 +24,20 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/products/:id" element={<ProductPage />} />
 
         <Route element={<GuestRoute />}>
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
+        </Route>
+
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Routes>
+      <SiteFooter />
     </BrowserRouter>
   );
 }
