@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { AxiosError } from "axios";
 import api from "../services/api";
+import { useShopStore } from "./shopStore";
 
 interface ApiError {
   message: string;
@@ -56,6 +57,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
 
       localStorage.setItem("token", data.token);
+      useShopStore.getState().setActiveUser(data.user.id);
       set({ user: data.user, token: data.token, isLoading: false });
     } catch (err) {
       const error = err as AxiosError<ApiError>;
@@ -76,6 +78,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
 
       localStorage.setItem("token", data.token);
+      useShopStore.getState().setActiveUser(data.user.id);
       set({ user: data.user, token: data.token, isLoading: false });
     } catch (err) {
       const error = err as AxiosError<ApiError>;
@@ -90,6 +93,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     const token = localStorage.getItem("token");
 
     if (!token) {
+      useShopStore.getState().setActiveUser(null);
       set({
         user: null,
         token: null,
@@ -104,6 +108,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     try {
       const { data } = await api.get<User>("/auth/me");
+      useShopStore.getState().setActiveUser(data.id);
       set({
         user: data,
         token,
@@ -113,6 +118,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
     } catch {
       localStorage.removeItem("token");
+      useShopStore.getState().setActiveUser(null);
       set({
         user: null,
         token: null,
@@ -125,6 +131,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   logout: () => {
     localStorage.removeItem("token");
+    useShopStore.getState().setActiveUser(null);
     set({
       user: null,
       token: null,

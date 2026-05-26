@@ -12,6 +12,7 @@ import {
 import SiteHeader from "../components/SiteHeader";
 import api from "../services/api";
 import { uploadProductImage } from "../lib/api";
+import type { OrderStatus } from "../lib/orderStatus";
 import type { Product } from "../types/product";
 
 type AdminTab = "products" | "orders" | "payments" | "promos";
@@ -24,6 +25,40 @@ interface ProductForm {
   description: string;
   images: string[];
   imageUrl: string;
+}
+
+type DeliveryMethod = "pickup" | "nova-poshta" | "courier";
+type PaymentMethod = "cash" | "card";
+interface AdminOrderItem {
+  productId: string;
+  title: string;
+  image?: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  customer: {
+    name: string;
+    phone: string;
+    email: string;
+  };
+  delivery: {
+    method: DeliveryMethod;
+    city: string;
+    address: string;
+    price: number;
+  };
+  payment: PaymentMethod;
+  comment: string;
+  items: AdminOrderItem[];
+  subtotal: number;
+  total: number;
+  status: OrderStatus;
+  createdAt: string;
 }
 
 const tabs: { id: AdminTab; label: string }[] = [
@@ -49,6 +84,94 @@ function getProductId(product: Product) {
 
 function uniqueUrls(urls: string[]) {
   return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)));
+}
+
+function formatPrice(value: number) {
+  return `₴${value.toLocaleString("uk-UA", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+const deliveryLabels: Record<DeliveryMethod, string> = {
+  pickup: "Самовивіз",
+  "nova-poshta": "Нова пошта",
+  courier: "Кур'єр",
+};
+
+const paymentLabels: Record<PaymentMethod, string> = {
+  cash: "Післяплата",
+  card: "Карткою",
+};
+
+const statusLabels: Record<OrderStatus, string> = {
+  new: "Нове замовлення",
+  awaiting_payment: "Очікує оплати",
+  paid: "Оплачено",
+  processing: "В обробці",
+  confirmed: "Підтверджено",
+  preparing_shipment: "Готується до відправки",
+  shipped: "Відправлено",
+  pickup_point: "У пункті видачі",
+  delivered: "Доставлено",
+  completed: "Завершено",
+  cancelled: "Скасовано",
+  return_requested: "Запит на повернення",
+  returned: "Повернено",
+};
+
+const statusOptions: { value: OrderStatus; label: string }[] = [
+  { value: "delivered", label: "Доставлено" },
+  { value: "new", label: "Нове замовлення" },
+  { value: "awaiting_payment", label: "Очікує оплати" },
+  { value: "paid", label: "Оплачено" },
+  { value: "processing", label: "В обробці" },
+  { value: "confirmed", label: "Підтверджено" },
+  { value: "preparing_shipment", label: "Готується до відправки" },
+  { value: "shipped", label: "Відправлено" },
+  { value: "pickup_point", label: "У пункті видачі" },
+  { value: "completed", label: "Завершено" },
+  { value: "cancelled", label: "Скасовано" },
+  { value: "return_requested", label: "Запит на повернення" },
+  { value: "returned", label: "Повернено" },
+];
+
+const paidStatuses = new Set<OrderStatus>([
+  "paid",
+  "confirmed",
+  "preparing_shipment",
+  "shipped",
+  "pickup_point",
+  "delivered",
+  "completed",
+]);
+
+const deliveredStatuses = new Set<OrderStatus>(["delivered", "completed"]);
+
+function getStatusBadgeClass(status: OrderStatus) {
+  if (status === "cancelled" || status === "returned") {
+    return "bg-[#ffe8e8] text-[#d22f2f]";
+  }
+
+  if (status === "delivered" || status === "completed") {
+    return "bg-[#e7f8e8] text-[#24823a]";
+  }
+
+  if (status === "awaiting_payment" || status === "return_requested") {
+    return "bg-[#fff4d8] text-[#a64e0d]";
+  }
+
+  return "bg-[#fff4eb] text-[#a64e0d]";
 }
 
 function ConfirmModal({
@@ -95,9 +218,17 @@ export default function AdminPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPages, setOrdersPages] = useState(1);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [statusSavingId, setStatusSavingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [orderDeleteTarget, setOrderDeleteTarget] = useState<AdminOrder | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -132,6 +263,31 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadOrders = useCallback(async (nextPage: number) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data } = await api.get<{
+        orders: AdminOrder[];
+        page: number;
+        pages: number;
+        total: number;
+      }>("/orders/admin/all", {
+        params: { page: nextPage, limit: 10, noCache: true },
+      });
+
+      setOrders(data.orders);
+      setOrdersPage(data.page);
+      setOrdersPages(data.pages);
+      setExpandedOrderId(null);
+    } catch {
+      setError("Не вдалося завантажити замовлення.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const tabParam = searchParams.get("tab") as AdminTab | null;
     const savedTab = localStorage.getItem("adminTab") as AdminTab | null;
@@ -152,7 +308,10 @@ export default function AdminPage() {
     if (activeTab === "products") {
       void loadProducts(1);
     }
-  }, [activeTab, loadProducts]);
+    if (activeTab === "orders") {
+      void loadOrders(1);
+    }
+  }, [activeTab, loadOrders, loadProducts]);
 
   const changeTab = (tab: AdminTab) => {
     setActiveTab(tab);
@@ -286,6 +445,38 @@ export default function AdminPage() {
       await loadProducts(page);
     } catch {
       setError("Не вдалося видалити товар.");
+    }
+  };
+
+  const changeOrderStatus = async (orderId: string, status: OrderStatus) => {
+    setStatusSavingId(orderId);
+    setError(null);
+
+    try {
+      const { data } = await api.put<AdminOrder>(`/orders/${orderId}/status`, {
+        status,
+      });
+
+      setOrders((current) =>
+        current.map((order) => (order.id === orderId ? data : order)),
+      );
+    } catch {
+      setError("Не вдалося оновити статус замовлення.");
+    } finally {
+      setStatusSavingId(null);
+    }
+  };
+
+  const confirmOrderDelete = async () => {
+    if (!orderDeleteTarget) return;
+
+    try {
+      await api.delete(`/orders/${orderDeleteTarget.id}`);
+      setOrderDeleteTarget(null);
+      setExpandedOrderId(null);
+      await loadOrders(ordersPage);
+    } catch {
+      setError("Не вдалося видалити замовлення.");
     }
   };
 
@@ -652,6 +843,272 @@ export default function AdminPage() {
               </div>
             </div>
           </section>
+        ) : activeTab === "orders" ? (
+          <section className="mt-6">
+            <div className="overflow-hidden rounded-xl border border-[#eadfd3] bg-white">
+              <div className="flex items-center justify-between gap-3 border-b border-[#eadfd3] p-4">
+                <h2 className="text-lg font-black">Оформлені замовлення</h2>
+                <button
+                  type="button"
+                  onClick={() => void loadOrders(ordersPage)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#eadfd3] bg-[#fffaf5] px-3 py-2 text-sm font-semibold hover:bg-[#ff7a1a]/10"
+                >
+                  <TiRefreshOutline className="text-lg text-[#ff7a1a]" />
+                  Оновити
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="p-8 text-center text-sm text-[#6d5c4f]">
+                  Завантажуємо замовлення...
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="p-8 text-center text-sm text-[#6d5c4f]">
+                  Оформлених замовлень поки немає.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1180px] text-left text-sm">
+                    <thead className="bg-[#fffaf5] text-xs font-black uppercase tracking-[0.12em] text-[#7f6e5f]">
+                      <tr>
+                        <th className="px-4 py-4">Замовлення</th>
+                        <th className="px-4 py-4">Клієнт</th>
+                        <th className="px-4 py-4">Сума</th>
+                        <th className="px-4 py-4">Оплачено</th>
+                        <th className="px-4 py-4">Транзакція</th>
+                        <th className="px-4 py-4">Доставлено</th>
+                        <th className="px-4 py-4">Статус</th>
+                        <th className="px-4 py-4 text-right">Дії</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#eadfd3]">
+                      {orders.map((order) => (
+                        <tr key={order.id} className="align-middle">
+                          <td className="px-4 py-4">
+                            <p className="font-black text-[#171612]">
+                              {order.orderNumber}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-[#7f6e5f]">
+                              {formatDate(order.createdAt)}
+                            </p>
+                          </td>
+                          <td className="max-w-[300px] px-4 py-4">
+                            <p className="font-semibold text-[#171612]">
+                              {order.customer.name}
+                            </p>
+                            <p className="mt-1 break-words text-xs text-[#6d5c4f]">
+                              {order.customer.email || order.customer.phone}
+                            </p>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 font-black text-[#171612]">
+                            {formatPrice(order.total)}
+                          </td>
+                          <td className="px-4 py-4 font-semibold text-[#171612]">
+                            {paidStatuses.has(order.status) ? "Так" : "Ні"}
+                          </td>
+                          <td className="px-4 py-4 text-[#6d5c4f]">-</td>
+                          <td className="px-4 py-4 font-semibold text-[#171612]">
+                            {deliveredStatuses.has(order.status) ? "Так" : "Ні"}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="grid w-fit min-w-[170px] gap-2">
+                              <span
+                                className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusBadgeClass(order.status)}`}
+                              >
+                                {statusLabels[order.status]}
+                              </span>
+                              <select
+                                value={order.status}
+                                disabled={statusSavingId === order.id}
+                                onChange={(event) =>
+                                  void changeOrderStatus(
+                                    order.id,
+                                    event.target.value as OrderStatus,
+                                  )
+                                }
+                                className="h-10 w-fit max-w-[210px] rounded-lg border border-[#eadfd3] bg-white px-2 pr-9 text-sm text-[#171612] outline-none transition focus:border-[#ff7a1a] disabled:opacity-60"
+                              >
+                                {statusOptions.map((status) => (
+                                  <option
+                                    key={status.value}
+                                    value={status.value}
+                                  >
+                                    {status.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedOrderId((current) =>
+                                    current === order.id ? null : order.id,
+                                  )
+                                }
+                                className="rounded-lg border border-[#eadfd3] bg-white px-3 py-2 text-sm font-semibold text-[#171612] transition hover:bg-[#ff7a1a]/10"
+                              >
+                                Деталі
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOrderDeleteTarget(order)}
+                                className="rounded-lg border border-[#ffb3a6] bg-white px-3 py-2 text-sm font-semibold text-[#d22f2f] transition hover:bg-[#ffe8e8]"
+                              >
+                                Видалити
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {orders.map(
+                    (order) =>
+                      expandedOrderId === order.id && (
+                        <div
+                          key={`${order.id}-details`}
+                          className="border-t border-[#eadfd3] bg-white px-4 py-5 lg:px-5"
+                        >
+                          <div className="grid gap-4 lg:grid-cols-3">
+                            <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
+                              <h4 className="text-sm font-black">Клієнт</h4>
+                              <p className="mt-2 font-semibold">
+                                {order.customer.name}
+                              </p>
+                              <p className="mt-1 text-sm text-[#6d5c4f]">
+                                {order.customer.phone}
+                              </p>
+                              {order.customer.email && (
+                                <p className="mt-1 break-words text-sm text-[#6d5c4f]">
+                                  {order.customer.email}
+                                </p>
+                              )}
+                            </section>
+
+                            <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
+                              <h4 className="text-sm font-black">Доставка</h4>
+                              <p className="mt-2 font-semibold">
+                                {deliveryLabels[order.delivery.method]}
+                              </p>
+                              <p className="mt-1 text-sm text-[#6d5c4f]">
+                                {order.delivery.city}
+                              </p>
+                              <p className="mt-1 break-words text-sm text-[#6d5c4f]">
+                                {order.delivery.address}
+                              </p>
+                            </section>
+
+                            <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
+                              <h4 className="text-sm font-black">Оплата</h4>
+                              <p className="mt-2 font-semibold">
+                                {paymentLabels[order.payment]}
+                              </p>
+                              <div className="mt-3 grid gap-1 text-sm text-[#6d5c4f]">
+                                <div className="flex justify-between gap-3">
+                                  <span>Товари</span>
+                                  <span className="font-semibold text-[#171612]">
+                                    {formatPrice(order.subtotal)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-3">
+                                  <span>Доставка</span>
+                                  <span className="font-semibold text-[#171612]">
+                                    {formatPrice(order.delivery.price)}
+                                  </span>
+                                </div>
+                              </div>
+                            </section>
+                          </div>
+
+                          <div className="mt-5 overflow-x-auto rounded-xl border border-[#eadfd3]">
+                            <table className="min-w-full text-left text-sm">
+                              <thead className="bg-[#fffaf5] text-xs uppercase tracking-[0.16em] text-[#7f6e5f]">
+                                <tr>
+                                  <th className="px-4 py-3">Товар</th>
+                                  <th className="px-4 py-3">К-сть</th>
+                                  <th className="px-4 py-3">Ціна</th>
+                                  <th className="px-4 py-3 text-right">Сума</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#eadfd3]">
+                                {order.items.map((item) => (
+                                  <tr key={`${order.id}-${item.productId}`}>
+                                    <td className="px-4 py-3">
+                                      <div className="grid grid-cols-[52px_1fr] items-center gap-3">
+                                        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-[#faf8f4] p-2">
+                                          {item.image ? (
+                                            <img
+                                              src={item.image}
+                                              alt={item.title}
+                                              className="h-full w-full object-contain"
+                                            />
+                                          ) : (
+                                            <div className="h-full w-full rounded bg-white" />
+                                          )}
+                                        </div>
+                                        <span className="font-semibold">
+                                          {item.title}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-[#6d5c4f]">
+                                      {item.quantity}
+                                    </td>
+                                    <td className="px-4 py-3 text-[#6d5c4f]">
+                                      {formatPrice(item.price)}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-semibold">
+                                      {formatPrice(item.total)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {order.comment && (
+                            <div className="mt-4 rounded-xl border border-[#eadfd3] bg-white px-4 py-3">
+                              <p className="text-xs uppercase tracking-[0.16em] text-[#7f6e5f]">
+                                Коментар
+                              </p>
+                              <p className="mt-1 text-sm text-[#6d5c4f]">
+                                {order.comment}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3 border-t border-[#eadfd3] p-4">
+                <button
+                  type="button"
+                  disabled={ordersPage <= 1}
+                  onClick={() => void loadOrders(ordersPage - 1)}
+                  className="rounded-xl border border-[#eadfd3] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  Назад
+                </button>
+                <span className="text-sm font-semibold text-[#6d5c4f]">
+                  Сторінка {ordersPage} з {ordersPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={ordersPage >= ordersPages}
+                  onClick={() => void loadOrders(ordersPage + 1)}
+                  className="rounded-xl border border-[#eadfd3] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  Далі
+                </button>
+              </div>
+            </div>
+          </section>
         ) : (
           <section className="mt-6 rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-8 text-center">
             <h2 className="text-2xl font-black">
@@ -670,6 +1127,15 @@ export default function AdminPage() {
           message={`Видалити "${deleteTarget.name || deleteTarget.title}"? Цю дію неможливо скасувати.`}
           onCancel={() => setDeleteTarget(null)}
           onConfirm={() => void confirmDelete()}
+        />
+      )}
+
+      {orderDeleteTarget && (
+        <ConfirmModal
+          title="Видалити замовлення"
+          message={`Видалити замовлення "${orderDeleteTarget.orderNumber}"? Цю дію неможливо скасувати.`}
+          onCancel={() => setOrderDeleteTarget(null)}
+          onConfirm={() => void confirmOrderDelete()}
         />
       )}
     </div>

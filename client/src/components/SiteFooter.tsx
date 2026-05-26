@@ -57,6 +57,15 @@ export default function SiteFooter() {
             <Link to="/catalog" className="transition hover:text-[#ff9a4d]">
               Каталог
             </Link>
+            <Link to="/cart" className="transition hover:text-[#ff9a4d]">
+              Кошик
+            </Link>
+            <Link
+              to="/account/orders"
+              className="transition hover:text-[#ff9a4d]"
+            >
+              Мої замовлення
+            </Link>
           </nav>
         </div>
 

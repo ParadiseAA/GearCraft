@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  TiCogOutline,
   TiHeartOutline,
   TiHomeOutline,
   TiPowerOutline,
@@ -34,7 +33,6 @@ export default function SiteHeader({
   const cartCount = useShopStore((state) =>
     state.cart.reduce((total, item) => total + item.quantity, 0),
   );
-  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
 
   useEffect(() => {
@@ -62,14 +60,8 @@ export default function SiteHeader({
   }, [location.pathname, location.search, navigate, search]);
 
   const handleLogout = () => {
-    setIsAccountOpen(false);
     logout();
     navigate("/", { replace: true });
-  };
-
-  const openAdminPanel = () => {
-    setIsAccountOpen(false);
-    navigate("/admin");
   };
 
   return (
@@ -152,51 +144,34 @@ export default function SiteHeader({
           </button>
 
           {user ? (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsAccountOpen((current) => !current)}
-                className="inline-flex items-center gap-2 rounded-full border border-[#eadfd3] bg-[#fffaf5] px-3 py-2 text-sm font-medium text-[#1a1714] transition hover:bg-[#ff7a1a]/10 xl:px-4"
-                aria-label="Особистий кабінет"
-              >
-                <TiUser className="text-[20px] text-[#ff7a1a]" />
-                <span className="hidden xl:inline">Особистий кабінет</span>
-              </button>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => navigate("/account")}
+                  className="peer inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1a1714] transition hover:bg-[#ff7a1a]/10"
+                  aria-label="Особистий кабінет"
+                >
+                  <TiUser className="text-[22px] text-current" />
+                </button>
+                <span className="pointer-events-none absolute right-1/2 top-full z-[1200] mt-2 translate-x-1/2 whitespace-nowrap rounded-lg border border-[#eadfd3] bg-white px-3 py-1.5 text-xs font-semibold text-[#171612] opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.12)] transition peer-hover:opacity-100">
+                  Особистий кабінет
+                </span>
+              </div>
 
-              {isAccountOpen && (
-                <div className="absolute right-0 z-[1100] mt-3 w-72 rounded-xl border border-[#eadfd3] bg-white p-3 shadow-[0_18px_40px_rgba(0,0,0,0.14)]">
-                  <div className="border-b border-[#eadfd3] px-3 pb-3">
-                    <p className="text-sm font-semibold text-[#171612]">
-                      {user.name} {user.surname}
-                    </p>
-                    <p className="mt-1 break-all text-xs text-[#6d5c4f]">
-                      {user.email}
-                    </p>
-                  </div>
-
-                  <div className="mt-3 grid gap-2">
-                    {user.role === "admin" && (
-                      <button
-                        type="button"
-                        onClick={openAdminPanel}
-                        className="inline-flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#171612] transition hover:bg-[#ff7a1a]/10"
-                      >
-                        <TiCogOutline className="text-xl text-[#ff7a1a]" />
-                        Адмін-панель
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="inline-flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#171612] transition hover:bg-[#ff7a1a]/10"
-                    >
-                      <TiPowerOutline className="text-xl text-[#ff7a1a]" />
-                      Вийти з акаунту
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="peer inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1a1714] transition hover:bg-[#ff7a1a]/10"
+                  aria-label="Вийти з акаунта"
+                >
+                  <TiPowerOutline className="text-[22px] text-current" />
+                </button>
+                <span className="pointer-events-none absolute right-0 top-full z-[1200] mt-2 whitespace-nowrap rounded-lg border border-[#eadfd3] bg-white px-3 py-1.5 text-xs font-semibold text-[#171612] opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.12)] transition peer-hover:opacity-100">
+                  Вийти з акаунта
+                </span>
+              </div>
             </div>
           ) : (
             <button

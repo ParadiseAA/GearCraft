@@ -38,14 +38,14 @@ export default function CartPage() {
             <div className="mt-5">
               <Link
                 to="/catalog"
-                className="inline-flex rounded-xl bg-[#171612] px-5 py-3 text-sm font-semibold text-white transition hover:bg-black"
+                className="inline-flex rounded-xl bg-[#FF7A1a] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110"
               >
                 Перейти в каталог
               </Link>
             </div>
           </div>
         ) : (
-          <section className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
+          <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
             <div>
               <div className="mb-4 flex justify-end">
                 <button
@@ -69,7 +69,7 @@ export default function CartPage() {
                   return (
                     <article
                       key={productId}
-                      className="relative grid min-h-[160px] grid-cols-[124px_1fr_auto] rounded-2xl border border-[#eadfd3] bg-white p-4 shadow-[0_8px_24px_rgba(23,22,18,0.06)]"
+                      className="grid gap-4 rounded-2xl border border-[#eadfd3] bg-white p-4 shadow-[0_8px_24px_rgba(23,22,18,0.06)] sm:grid-cols-[124px_1fr] lg:grid-cols-[124px_1fr_auto]"
                     >
                       <Link
                         to={`/products/${productId}`}
@@ -86,7 +86,7 @@ export default function CartPage() {
                         )}
                       </Link>
 
-                      <div className="ml-6 flex min-w-0 flex-col justify-between py-1">
+                      <div className="flex min-w-0 flex-col justify-between gap-5 py-1">
                         <Link
                           to={`/products/${productId}`}
                           className="truncate text-[18px] font-semibold leading-6 text-[#171612] hover:text-[#d86b12]"
@@ -130,7 +130,7 @@ export default function CartPage() {
                         </div>
                       </div>
 
-                      <div className="flex min-w-[150px] flex-col items-end justify-between py-1">
+                      <div className="flex items-end justify-between gap-4 py-1 sm:col-span-2 lg:col-span-1 lg:min-w-[150px] lg:flex-col">
                         <button
                           type="button"
                           onClick={() => removeFromCart(productId)}
@@ -149,7 +149,7 @@ export default function CartPage() {
               </div>
             </div>
 
-            <aside className="self-start rounded-2xl border border-[#eadfd3] bg-[#fffaf5] p-6 shadow-[0_8px_24px_rgba(23,22,18,0.06)]">
+            <aside className="self-start rounded-2xl border border-[#eadfd3] bg-[#fffaf5] p-6 shadow-[0_8px_24px_rgba(23,22,18,0.06)] xl:sticky xl:top-6">
               <h2 className="text-[22px] font-black">Підсумок замовлення</h2>
 
               <div className="mt-6 grid gap-4 text-[16px] text-[#6d5c4f]">
@@ -159,7 +159,9 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <span>Доставка:</span>
-                  <span className="text-right">Буде розраховано на оформленні</span>
+                  <span className="text-right">
+                    Буде розраховано на оформленні
+                  </span>
                 </div>
               </div>
 
@@ -168,12 +170,12 @@ export default function CartPage() {
                 <span>{formatPrice(total)}</span>
               </div>
 
-              <button
-                type="button"
+              <Link
+                to="/checkout"
                 className="mt-7 inline-flex h-[54px] w-full items-center justify-center rounded-xl bg-[#ff7a1a] px-5 text-[16px] font-semibold text-white transition hover:brightness-110"
               >
                 Оформити замовлення
-              </button>
+              </Link>
             </aside>
           </section>
         )}

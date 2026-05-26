@@ -88,6 +88,74 @@ const connectDB = async (): Promise<void> => {
       ON products USING GIN (to_tsvector('simple', title || ' ' || description))
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_number TEXT NOT NULL UNIQUE,
+        customer_name TEXT NOT NULL CHECK (char_length(customer_name) <= 160),
+        customer_phone TEXT NOT NULL CHECK (char_length(customer_phone) <= 40),
+        customer_email TEXT CHECK (char_length(customer_email) <= 160),
+        delivery_method TEXT NOT NULL CHECK (delivery_method IN ('pickup', 'nova-poshta', 'courier')),
+        delivery_city TEXT NOT NULL CHECK (char_length(delivery_city) <= 120),
+        delivery_address TEXT NOT NULL CHECK (char_length(delivery_address) <= 240),
+        delivery_price NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (delivery_price >= 0),
+        payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'card')),
+        comment TEXT CHECK (char_length(comment) <= 1000),
+        items JSONB NOT NULL,
+        subtotal NUMERIC(12, 2) NOT NULL CHECK (subtotal >= 0),
+        total NUMERIC(12, 2) NOT NULL CHECK (total >= 0),
+        status TEXT NOT NULL DEFAULT 'new' CHECK (
+          status IN (
+            'new',
+            'awaiting_payment',
+            'paid',
+            'processing',
+            'confirmed',
+            'preparing_shipment',
+            'shipped',
+            'pickup_point',
+            'delivered',
+            'completed',
+            'cancelled',
+            'return_requested',
+            'returned'
+          )
+        ),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders(created_at DESC)
+    `);
+    await pool.query(`
+      ALTER TABLE orders
+      DROP CONSTRAINT IF EXISTS orders_status_check
+    `);
+    await pool.query(`
+      ALTER TABLE orders
+      ADD CONSTRAINT orders_status_check CHECK (
+        status IN (
+          'new',
+          'awaiting_payment',
+          'paid',
+          'processing',
+          'confirmed',
+          'preparing_shipment',
+          'shipped',
+          'pickup_point',
+          'delivered',
+          'completed',
+          'cancelled',
+          'return_requested',
+          'returned'
+        )
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS orders_status_idx ON orders(status)
+    `);
+
     const { rows } = await pool.query("SELECT current_database() AS db");
     console.log(`PostgreSQL connected: ${rows[0].db}`);
   } catch (error) {

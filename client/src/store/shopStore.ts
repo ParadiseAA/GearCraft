@@ -7,8 +7,10 @@ interface CartItem {
 }
 
 interface ShopStore {
+  activeUserId: string | null;
   favorites: Product[];
   cart: CartItem[];
+  setActiveUser: (userId: string | null) => void;
   toggleFavorite: (product: Product) => void;
   isFavorite: (productId: string) => boolean;
   addToCart: (product: Product) => void;
@@ -17,8 +19,8 @@ interface ShopStore {
   clearCart: () => void;
 }
 
-const favoritesKey = "gearcraft:favorites";
-const cartKey = "gearcraft:cart";
+const getFavoritesKey = (userId: string) => `gearcraft:user:${userId}:favorites`;
+const getCartKey = (userId: string) => `gearcraft:user:${userId}:cart`;
 
 function getProductId(product: Product) {
   return product._id || product.id || "";
@@ -42,10 +44,27 @@ function getProductStock(product: Product) {
 }
 
 export const useShopStore = create<ShopStore>((set, get) => ({
-  favorites: readStorage<Product[]>(favoritesKey, []),
-  cart: readStorage<CartItem[]>(cartKey, []),
+  activeUserId: null,
+  favorites: [],
+  cart: [],
+
+  setActiveUser: (userId) => {
+    if (!userId) {
+      set({ activeUserId: null, favorites: [], cart: [] });
+      return;
+    }
+
+    set({
+      activeUserId: userId,
+      favorites: readStorage<Product[]>(getFavoritesKey(userId), []),
+      cart: readStorage<CartItem[]>(getCartKey(userId), []),
+    });
+  },
 
   toggleFavorite: (product) => {
+    const userId = get().activeUserId;
+    if (!userId) return;
+
     const productId = getProductId(product);
     const exists = get().favorites.some(
       (favorite) => getProductId(favorite) === productId,
@@ -54,7 +73,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
       ? get().favorites.filter((favorite) => getProductId(favorite) !== productId)
       : [product, ...get().favorites];
 
-    writeStorage(favoritesKey, favorites);
+    writeStorage(getFavoritesKey(userId), favorites);
     set({ favorites });
   },
 
@@ -62,6 +81,9 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     get().favorites.some((favorite) => getProductId(favorite) === productId),
 
   addToCart: (product) => {
+    const userId = get().activeUserId;
+    if (!userId) return;
+
     const productId = getProductId(product);
     const stock = getProductStock(product);
     if (stock <= 0) return;
@@ -76,20 +98,26 @@ export const useShopStore = create<ShopStore>((set, get) => ({
         )
       : [...cart, { product, quantity: 1 }];
 
-    writeStorage(cartKey, nextCart);
+    writeStorage(getCartKey(userId), nextCart);
     set({ cart: nextCart });
   },
 
   removeFromCart: (productId) => {
+    const userId = get().activeUserId;
+    if (!userId) return;
+
     const cart = get().cart.filter(
       (item) => getProductId(item.product) !== productId,
     );
 
-    writeStorage(cartKey, cart);
+    writeStorage(getCartKey(userId), cart);
     set({ cart });
   },
 
   updateQuantity: (productId, quantity) => {
+    const userId = get().activeUserId;
+    if (!userId) return;
+
     const cart = get().cart.map((item) =>
       getProductId(item.product) === productId
         ? {
@@ -102,12 +130,15 @@ export const useShopStore = create<ShopStore>((set, get) => ({
         : item,
     );
 
-    writeStorage(cartKey, cart);
+    writeStorage(getCartKey(userId), cart);
     set({ cart });
   },
 
   clearCart: () => {
-    writeStorage(cartKey, []);
+    const userId = get().activeUserId;
+    if (userId) {
+      writeStorage(getCartKey(userId), []);
+    }
     set({ cart: [] });
   },
 }));
