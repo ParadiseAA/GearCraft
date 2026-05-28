@@ -67,7 +67,6 @@ const tabs: { id: AdminTab; label: string }[] = [
   { id: "products", label: "Товари" },
   { id: "orders", label: "Замовлення" },
   { id: "payments", label: "Оплати" },
-  { id: "promos", label: "Промокоди" },
 ];
 
 const emptyForm: ProductForm = {
@@ -938,7 +937,9 @@ export default function AdminPage() {
                             </td>
                             <td className="px-4 py-4 text-[#6d5c4f]">-</td>
                             <td className="px-4 py-4 font-semibold text-[#171612]">
-                              {deliveredStatuses.has(order.status) ? "Так" : "Ні"}
+                              {deliveredStatuses.has(order.status)
+                                ? "Так"
+                                : "Ні"}
                             </td>
                             <td className="px-4 py-4">
                               <div className="grid w-fit min-w-[170px] gap-2">
@@ -995,115 +996,128 @@ export default function AdminPage() {
 
                           {expandedOrderId === order.id && (
                             <tr>
-                              <td colSpan={8} className="bg-white px-4 py-5 lg:px-5">
+                              <td
+                                colSpan={8}
+                                className="bg-white px-4 py-5 lg:px-5"
+                              >
                                 <div>
-                          <div className="grid gap-4 lg:grid-cols-3">
-                            <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
-                              <h4 className="text-sm font-black">Клієнт</h4>
-                              <p className="mt-2 font-semibold">
-                                {order.customer.name}
-                              </p>
-                              <p className="mt-1 text-sm text-[#6d5c4f]">
-                                {order.customer.phone}
-                              </p>
-                              {order.customer.email && (
-                                <p className="mt-1 break-words text-sm text-[#6d5c4f]">
-                                  {order.customer.email}
-                                </p>
-                              )}
-                            </section>
+                                  <div className="grid gap-4 lg:grid-cols-3">
+                                    <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
+                                      <h4 className="text-sm font-black">
+                                        Клієнт
+                                      </h4>
+                                      <p className="mt-2 font-semibold">
+                                        {order.customer.name}
+                                      </p>
+                                      <p className="mt-1 text-sm text-[#6d5c4f]">
+                                        {order.customer.phone}
+                                      </p>
+                                      {order.customer.email && (
+                                        <p className="mt-1 break-words text-sm text-[#6d5c4f]">
+                                          {order.customer.email}
+                                        </p>
+                                      )}
+                                    </section>
 
-                            <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
-                              <h4 className="text-sm font-black">Доставка</h4>
-                              <p className="mt-2 font-semibold">
-                                {deliveryLabels[order.delivery.method]}
-                              </p>
-                              <p className="mt-1 text-sm text-[#6d5c4f]">
-                                {order.delivery.city}
-                              </p>
-                              <p className="mt-1 break-words text-sm text-[#6d5c4f]">
-                                {order.delivery.address}
-                              </p>
-                            </section>
+                                    <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
+                                      <h4 className="text-sm font-black">
+                                        Доставка
+                                      </h4>
+                                      <p className="mt-2 font-semibold">
+                                        {deliveryLabels[order.delivery.method]}
+                                      </p>
+                                      <p className="mt-1 text-sm text-[#6d5c4f]">
+                                        {order.delivery.city}
+                                      </p>
+                                      <p className="mt-1 break-words text-sm text-[#6d5c4f]">
+                                        {order.delivery.address}
+                                      </p>
+                                    </section>
 
-                            <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
-                              <h4 className="text-sm font-black">Оплата</h4>
-                              <p className="mt-2 font-semibold">
-                                {paymentLabels[order.payment]}
-                              </p>
-                              <div className="mt-3 grid gap-1 text-sm text-[#6d5c4f]">
-                                <div className="flex justify-between gap-3">
-                                  <span>Товари</span>
-                                  <span className="font-semibold text-[#171612]">
-                                    {formatPrice(order.subtotal)}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between gap-3">
-                                  <span>Доставка</span>
-                                  <span className="font-semibold text-[#171612]">
-                                    {formatPrice(order.delivery.price)}
-                                  </span>
-                                </div>
-                              </div>
-                            </section>
-                          </div>
-
-                          <div className="mt-5 overflow-x-auto rounded-xl border border-[#eadfd3]">
-                            <table className="min-w-full text-left text-sm">
-                              <thead className="bg-[#fffaf5] text-xs uppercase tracking-[0.16em] text-[#7f6e5f]">
-                                <tr>
-                                  <th className="px-4 py-3">Товар</th>
-                                  <th className="px-4 py-3">К-сть</th>
-                                  <th className="px-4 py-3">Ціна</th>
-                                  <th className="px-4 py-3 text-right">Сума</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-[#eadfd3]">
-                                {order.items.map((item) => (
-                                  <tr key={`${order.id}-${item.productId}`}>
-                                    <td className="px-4 py-3">
-                                      <div className="grid grid-cols-[52px_1fr] items-center gap-3">
-                                        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-[#faf8f4] p-2">
-                                          {item.image ? (
-                                            <img
-                                              src={item.image}
-                                              alt={item.title}
-                                              className="h-full w-full object-contain"
-                                            />
-                                          ) : (
-                                            <div className="h-full w-full rounded bg-white" />
-                                          )}
+                                    <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
+                                      <h4 className="text-sm font-black">
+                                        Оплата
+                                      </h4>
+                                      <p className="mt-2 font-semibold">
+                                        {paymentLabels[order.payment]}
+                                      </p>
+                                      <div className="mt-3 grid gap-1 text-sm text-[#6d5c4f]">
+                                        <div className="flex justify-between gap-3">
+                                          <span>Товари</span>
+                                          <span className="font-semibold text-[#171612]">
+                                            {formatPrice(order.subtotal)}
+                                          </span>
                                         </div>
-                                        <span className="font-semibold">
-                                          {item.title}
-                                        </span>
+                                        <div className="flex justify-between gap-3">
+                                          <span>Доставка</span>
+                                          <span className="font-semibold text-[#171612]">
+                                            {formatPrice(order.delivery.price)}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-[#6d5c4f]">
-                                      {item.quantity}
-                                    </td>
-                                    <td className="px-4 py-3 text-[#6d5c4f]">
-                                      {formatPrice(item.price)}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-semibold">
-                                      {formatPrice(item.total)}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                                    </section>
+                                  </div>
 
-                          {order.comment && (
-                            <div className="mt-4 rounded-xl border border-[#eadfd3] bg-white px-4 py-3">
-                              <p className="text-xs uppercase tracking-[0.16em] text-[#7f6e5f]">
-                                Коментар
-                              </p>
-                              <p className="mt-1 text-sm text-[#6d5c4f]">
-                                {order.comment}
-                              </p>
-                            </div>
-                          )}
+                                  <div className="mt-5 overflow-x-auto rounded-xl border border-[#eadfd3]">
+                                    <table className="min-w-full text-left text-sm">
+                                      <thead className="bg-[#fffaf5] text-xs uppercase tracking-[0.16em] text-[#7f6e5f]">
+                                        <tr>
+                                          <th className="px-4 py-3">Товар</th>
+                                          <th className="px-4 py-3">К-сть</th>
+                                          <th className="px-4 py-3">Ціна</th>
+                                          <th className="px-4 py-3 text-right">
+                                            Сума
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-[#eadfd3]">
+                                        {order.items.map((item) => (
+                                          <tr
+                                            key={`${order.id}-${item.productId}`}
+                                          >
+                                            <td className="px-4 py-3">
+                                              <div className="grid grid-cols-[52px_1fr] items-center gap-3">
+                                                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-[#faf8f4] p-2">
+                                                  {item.image ? (
+                                                    <img
+                                                      src={item.image}
+                                                      alt={item.title}
+                                                      className="h-full w-full object-contain"
+                                                    />
+                                                  ) : (
+                                                    <div className="h-full w-full rounded bg-white" />
+                                                  )}
+                                                </div>
+                                                <span className="font-semibold">
+                                                  {item.title}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-[#6d5c4f]">
+                                              {item.quantity}
+                                            </td>
+                                            <td className="px-4 py-3 text-[#6d5c4f]">
+                                              {formatPrice(item.price)}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-semibold">
+                                              {formatPrice(item.total)}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  {order.comment && (
+                                    <div className="mt-4 rounded-xl border border-[#eadfd3] bg-white px-4 py-3">
+                                      <p className="text-xs uppercase tracking-[0.16em] text-[#7f6e5f]">
+                                        Коментар
+                                      </p>
+                                      <p className="mt-1 text-sm text-[#6d5c4f]">
+                                        {order.comment}
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                             </tr>
