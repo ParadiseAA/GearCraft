@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
 import {
@@ -6,6 +6,7 @@ import {
   TiHomeOutline,
   TiShoppingCart,
   TiThLargeOutline,
+  TiTimes,
   TiUser,
   TiUserOutline,
   TiZoomOutline,
@@ -28,12 +29,25 @@ export default function SiteHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const searchParamQuery = searchParams.get("q") ?? "";
   const { user, logout } = useAuthStore();
   const favoritesCount = useShopStore((state) => state.favorites.length);
   const cartCount = useShopStore((state) =>
     state.cart.reduce((total, item) => total + item.quantity, 0),
   );
-  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [search, setSearch] = useState(searchParamQuery);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setSearch(searchParamQuery);
+  }, [searchParamQuery]);
+
+  useEffect(() => {
+    if (isMobileSearchOpen) {
+      mobileSearchInputRef.current?.focus();
+    }
+  }, [isMobileSearchOpen]);
 
   useEffect(() => {
     const query = search.trim();
@@ -62,6 +76,21 @@ export default function SiteHeader({
   const handleLogout = () => {
     logout();
     navigate("/", { replace: true });
+  };
+
+  const submitSearch = () => {
+    const query = search.trim();
+    const nextParams = new URLSearchParams();
+
+    if (query) {
+      nextParams.set("q", query);
+    }
+
+    navigate({
+      pathname: "/catalog",
+      search: nextParams.toString(),
+    });
+    setIsMobileSearchOpen(false);
   };
 
   return (
@@ -95,7 +124,7 @@ export default function SiteHeader({
         </nav>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <label className="hidden items-center gap-2 rounded-full border border-[#eadfd3] bg-[#fffaf5] px-4 py-2 text-sm text-[#7f6e5f] lg:flex">
+          <label className="hidden items-center gap-2 rounded-full border border-[#eadfd3] bg-[#fffaf5] px-4 py-2 text-sm text-[#7f6e5f] xl:flex">
             <TiZoomOutline className="order-2 text-xl text-[#ff7a1a]" />
             <input
               type="search"
@@ -108,11 +137,20 @@ export default function SiteHeader({
 
           <button
             type="button"
-            onClick={() => navigate("/catalog")}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1a1714] transition hover:bg-[#ff7a1a]/10 lg:hidden"
+            onClick={() => setIsMobileSearchOpen((current) => !current)}
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1a1714] transition xl:hidden ${
+              isMobileSearchOpen
+                ? "border-2 border-[#ffb000] bg-white"
+                : "hover:bg-[#ff7a1a]/10"
+            }`}
             aria-label="Пошук"
+            aria-expanded={isMobileSearchOpen}
           >
-            <TiZoomOutline className="text-[24px]" />
+            {isMobileSearchOpen ? (
+              <TiTimes className="text-[24px]" />
+            ) : (
+              <TiZoomOutline className="text-[24px]" />
+            )}
           </button>
 
           <button
@@ -186,6 +224,35 @@ export default function SiteHeader({
           )}
         </div>
       </div>
+
+      {isMobileSearchOpen && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitSearch();
+          }}
+          className="border-t border-[#ece3d8] bg-white px-4 py-3 shadow-[0_12px_28px_rgba(23,22,18,0.08)] xl:hidden"
+        >
+          <div className="mx-auto flex max-w-[1320px] items-center gap-3 rounded-full border border-[#eadfd3] bg-[#fffaf5] px-4 py-2 text-sm text-[#7f6e5f] focus-within:border-[#ff7a1a] focus-within:ring-2 focus-within:ring-[#ff7a1a]/20">
+            <TiZoomOutline className="text-2xl text-[#ff7a1a]" />
+            <input
+              ref={mobileSearchInputRef}
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label="Пошук товарів"
+              className="min-w-0 flex-1 bg-transparent text-[#1a1714] outline-none placeholder:text-[#9d8e80]"
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-[#ff7a1a] px-4 py-2 text-xs font-black text-white transition hover:brightness-110"
+            >
+              Знайти
+            </button>
+          </div>
+        </form>
+      )}
     </header>
   );
 }

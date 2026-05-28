@@ -51,7 +51,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const isMaxInCart = quantityInCart >= stock;
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-[0_10px_28px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#f2c39c] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)]">
+    <article className="group h-fit overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-[0_10px_28px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#f2c39c] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)]">
       <div className="relative">
         <Link to={productUrl} className="block">
           <div className="flex h-[260px] items-center justify-center bg-[#faf8f4] p-5">

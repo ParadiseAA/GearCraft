@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { TiRefreshOutline, TiTimes, TiTrash } from "react-icons/ti";
+import { TiRefreshOutline, TiTrash } from "react-icons/ti";
 import api from "../services/api";
 import ProductCard from "../components/ProductCard";
 import SiteHeader from "../components/SiteHeader";
@@ -183,19 +183,7 @@ export default function CatalogPage() {
           ) : (
             <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
               <aside className="self-start rounded-2xl border border-[#eadfd3] bg-[#fffaf5] p-4 lg:sticky lg:top-6">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-black">Фільтри</h3>
-                  {hasActiveFilters && (
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[#a64e0d] hover:bg-[#ff7a1a]/10"
-                    >
-                      <TiTimes className="text-lg" />
-                      Очистити
-                    </button>
-                  )}
-                </div>
+                <h3 className="text-lg font-black">Фільтри</h3>
 
                 {search && (
                   <div className="mt-4 rounded-xl border border-[#eadfd3] bg-white px-3 py-2 text-sm text-[#6d5c4f]">
@@ -285,7 +273,7 @@ export default function CatalogPage() {
                   За вашим запитом поки нічого не знайдено.
                 </div>
               ) : (
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {visibleProducts.map((product) => (
                     <ProductCard key={product._id} product={product} />
                   ))}
