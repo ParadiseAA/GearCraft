@@ -28,6 +28,7 @@ export interface OrderItem {
 
 export interface IOrder {
   id: string;
+  userId?: string;
   orderNumber: string;
   customer: {
     name: string;
@@ -52,6 +53,7 @@ export interface IOrder {
 
 const mapOrder = (row: Record<string, unknown>): IOrder => ({
   id: row.id as string,
+  userId: (row.user_id as string | null) ?? undefined,
   orderNumber: row.order_number as string,
   customer: {
     name: row.customer_name as string,
@@ -75,6 +77,7 @@ const mapOrder = (row: Record<string, unknown>): IOrder => ({
 });
 
 export const createOrderRecord = async (input: {
+  userId?: string;
   orderNumber: string;
   customer: {
     name: string;
@@ -90,18 +93,20 @@ export const createOrderRecord = async (input: {
   payment: PaymentMethod;
   comment: string;
   items: OrderItem[];
-  subtotal: number;
-  total: number;
+  subtotal?: number;
+  total?: number;
 }): Promise<IOrder> => {
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
+    const orderItems: OrderItem[] = [];
+
     for (const item of input.items) {
       const { rows } = await client.query(
         `
-          SELECT title, stock
+          SELECT title, price, images, stock, is_active
           FROM products
           WHERE id = $1
           FOR UPDATE
@@ -110,14 +115,21 @@ export const createOrderRecord = async (input: {
       );
 
       const product = rows[0] as
-        | { title: string; stock: number | string }
+        | {
+            title: string;
+            price: number | string;
+            images: string[] | null;
+            stock: number | string;
+            is_active: boolean;
+          }
         | undefined;
 
-      if (!product) {
+      if (!product || !product.is_active) {
         throw new Error(`Товар "${item.title}" не знайдено`);
       }
 
       const stock = Number(product.stock);
+      const price = Number(product.price);
 
       if (stock < item.quantity) {
         throw new Error(
@@ -133,11 +145,24 @@ export const createOrderRecord = async (input: {
         `,
         [item.productId, item.quantity],
       );
+
+      orderItems.push({
+        productId: item.productId,
+        title: product.title,
+        image: product.images?.[0] ?? "",
+        quantity: item.quantity,
+        price,
+        total: price * item.quantity,
+      });
     }
+
+    const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+    const total = subtotal + input.delivery.price;
 
     const { rows } = await client.query(
       `
         INSERT INTO orders (
+          user_id,
           order_number,
           customer_name,
           customer_phone,
@@ -152,10 +177,11 @@ export const createOrderRecord = async (input: {
           subtotal,
           total
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *
       `,
       [
+        input.userId ?? null,
         input.orderNumber,
         input.customer.name,
         input.customer.phone,
@@ -166,9 +192,9 @@ export const createOrderRecord = async (input: {
         input.delivery.price,
         input.payment,
         input.comment || null,
-        JSON.stringify(input.items),
-        input.subtotal,
-        input.total,
+        JSON.stringify(orderItems),
+        subtotal,
+        total,
       ],
     );
 
@@ -225,6 +251,23 @@ export const findOrdersByCustomerEmail = async (
       ORDER BY created_at DESC
     `,
     [email],
+  );
+
+  return rows.map(mapOrder);
+};
+
+export const findOrdersByUser = async (input: {
+  userId: string;
+  email: string;
+}): Promise<IOrder[]> => {
+  const { rows } = await pool.query(
+    `
+      SELECT *
+      FROM orders
+      WHERE user_id = $1 OR LOWER(customer_email) = LOWER($2)
+      ORDER BY created_at DESC
+    `,
+    [input.userId, input.email],
   );
 
   return rows.map(mapOrder);

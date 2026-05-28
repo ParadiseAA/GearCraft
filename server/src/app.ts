@@ -1,4 +1,5 @@
 import express from "express";
+import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
@@ -27,7 +28,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/products", productRoutes);
 
-app.use((err: unknown, req: any, res: any, next: any) => {
+app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   const error = err as Error & { name?: string };
 
   if (error.name === "MulterError") {

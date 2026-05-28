@@ -43,7 +43,32 @@ const serializeUser = (user: {
 });
 
 export const register = async (req: Request, res: Response) => {
-  const { name, surname, email, password } = req.body;
+  const name = String(req.body.name ?? "").trim();
+  const surname = String(req.body.surname ?? "").trim();
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  const password = String(req.body.password ?? "");
+
+  if (name.length < 2 || name.length > 80) {
+    return res
+      .status(400)
+      .json({ message: "Ім'я має містити від 2 до 80 символів" });
+  }
+
+  if (surname.length < 2 || surname.length > 80) {
+    return res
+      .status(400)
+      .json({ message: "Прізвище має містити від 2 до 80 символів" });
+  }
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: "Введіть коректний email" });
+  }
+
+  if (password.length < 6) {
+    return res
+      .status(400)
+      .json({ message: "Пароль має містити щонайменше 6 символів" });
+  }
 
   const exists = await findUserByEmail(email);
   if (exists) {

@@ -44,11 +44,11 @@ export default function App() {
         <Route path="/contacts" element={<ContactsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/cart" element={<CartPage />} />
         <Route path="/products/:id" element={<ProductPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/cart" element={<CartPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/orders" element={<UserOrdersPage />} />
         </Route>

@@ -3,7 +3,7 @@ import {
   createOrderRecord,
   DeliveryMethod,
   deleteOrderRecord,
-  findOrdersByCustomerEmail,
+  findOrdersByUser,
   findOrdersPage,
   OrderItem,
   OrderStatus,
@@ -88,12 +88,9 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
   const deliveryMethod = String(delivery.method ?? "") as DeliveryMethod;
   const city = String(delivery.city ?? "").trim();
   const address = String(delivery.address ?? "").trim();
-  const deliveryPrice = Number(delivery.price ?? 0);
   const payment = String(body.payment ?? "") as PaymentMethod;
   const comment = String(body.comment ?? "").trim();
   const items = Array.isArray(body.items) ? body.items : [];
-  const subtotal = Number(body.subtotal);
-  const total = Number(body.total);
   const normalizedPhone = normalizePhone(phone);
 
   if (name.length < 2 || name.length > 160) {
@@ -122,10 +119,6 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
     };
   }
 
-  if (!Number.isFinite(deliveryPrice) || deliveryPrice < 0) {
-    return { error: "Delivery price is invalid" };
-  }
-
   if (!paymentMethods.has(payment)) {
     return { error: "Payment method is invalid" };
   }
@@ -134,37 +127,33 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
     return { error: "Comment must be up to 1000 characters" };
   }
 
-  const normalizedItems: OrderItem[] = items.map((item) => {
-    const source = item as Record<string, unknown>;
-    return {
-      productId: String(source.productId ?? "").trim(),
-      title: String(source.title ?? "").trim(),
-      image: String(source.image ?? "").trim(),
-      quantity: Number(source.quantity),
-      price: Number(source.price),
-      total: Number(source.total),
-    };
-  });
+  const itemQuantities = new Map<string, number>();
 
-  if (
-    normalizedItems.length === 0 ||
-    normalizedItems.some(
-      (item) =>
-        !item.productId ||
-        !item.title ||
-        !Number.isInteger(item.quantity) ||
-        item.quantity < 1 ||
-        !Number.isFinite(item.price) ||
-        item.price < 0 ||
-        !Number.isFinite(item.total) ||
-        item.total < 0,
-    )
-  ) {
-    return { error: "Order items are invalid" };
+  for (const item of items) {
+    const source = item as Record<string, unknown>;
+    const productId = String(source.productId ?? "").trim();
+    const quantity = Number(source.quantity);
+
+    if (!productId || !Number.isInteger(quantity) || quantity < 1) {
+      return { error: "Order items are invalid" };
+    }
+
+    itemQuantities.set(productId, (itemQuantities.get(productId) ?? 0) + quantity);
   }
 
-  if (!Number.isFinite(subtotal) || subtotal < 0 || !Number.isFinite(total) || total < subtotal) {
-    return { error: "Order totals are invalid" };
+  const normalizedItems: OrderItem[] = Array.from(itemQuantities).map(
+    ([productId, quantity]) => ({
+      productId,
+      title: "",
+      image: "",
+      quantity,
+      price: 0,
+      total: 0,
+    }),
+  );
+
+  if (normalizedItems.length === 0) {
+    return { error: "Order items are invalid" };
   }
 
   return {
@@ -174,18 +163,16 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
         method: deliveryMethod,
         city,
         address,
-        price: deliveryPrice,
+        price: deliveryMethod === "courier" ? 150 : 0,
       },
       payment,
       comment,
       items: normalizedItems,
-      subtotal,
-      total,
     },
   };
 };
 
-export const createOrder = async (req: Request, res: Response) => {
+export const createOrder = async (req: AuthenticatedRequest, res: Response) => {
   const normalized = normalizeOrderInput(req.body);
 
   if ("error" in normalized) {
@@ -194,6 +181,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
   try {
     const order = await createOrderRecord({
+      userId: req.user?.id,
       orderNumber: createOrderNumber(),
       ...normalized.data,
     });
@@ -234,7 +222,10 @@ export const getMyOrders = async (
     return res.status(404).json({ message: "User not found" });
   }
 
-  const orders = await findOrdersByCustomerEmail(user.email);
+  const orders = await findOrdersByUser({
+    userId: user.id,
+    email: user.email,
+  });
 
   res.json({ orders });
 };

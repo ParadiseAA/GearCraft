@@ -150,6 +150,7 @@ const connectDB = async (): Promise<void> => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
         order_number TEXT NOT NULL UNIQUE,
         customer_name TEXT NOT NULL CHECK (char_length(customer_name) <= 160),
         customer_phone TEXT NOT NULL CHECK (char_length(customer_phone) <= 40),
@@ -185,7 +186,14 @@ const connectDB = async (): Promise<void> => {
       )
     `);
     await pool.query(`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL
+    `);
+    await pool.query(`
       CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders(created_at DESC)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS orders_user_id_idx ON orders(user_id)
     `);
     await pool.query(`
       ALTER TABLE orders

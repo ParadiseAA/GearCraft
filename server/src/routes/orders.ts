@@ -6,11 +6,11 @@ import {
   getMyOrders,
   updateOrderStatus,
 } from "../controllers/orderController";
-import { authorizeRoles, protect } from "../middleware/auth";
+import { authorizeRoles, optionalAuth, protect } from "../middleware/auth";
 
 const router = Router();
 
-router.post("/", createOrder);
+router.post("/", optionalAuth, createOrder);
 router.get("/my", protect, getMyOrders);
 router.get("/admin/all", protect, authorizeRoles("admin"), getAdminOrders);
 router.put("/:id/status", protect, authorizeRoles("admin"), updateOrderStatus);

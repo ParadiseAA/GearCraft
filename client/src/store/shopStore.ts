@@ -30,6 +30,7 @@ const getFavoritesKey = (userId: string) => `gearcraft:user:${userId}:favorites`
 const getCartKey = (userId: string) => `gearcraft:user:${userId}:cart`;
 const getMigrationKey = (userId: string) =>
   `gearcraft:user:${userId}:shop-migrated`;
+const guestCartKey = "gearcraft:guest:cart";
 
 function getProductId(product: Product) {
   return product._id || product.id || "";
@@ -44,6 +45,10 @@ function readStorage<T>(key: string, fallback: T): T {
   }
 }
 
+function writeStorage<T>(key: string, value: T) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 function getProductStock(product: Product) {
   return Math.max(0, product.countInStock ?? product.stock ?? 0);
 }
@@ -56,18 +61,17 @@ const normalizeCart = (cart: CartItem[]) =>
     }))
     .filter((item) => item.quantity > 0 && getProductStock(item.product) > 0);
 
+const saveGuestCart = (cart: CartItem[]) => {
+  writeStorage(guestCartKey, normalizeCart(cart));
+};
+
 const syncLegacyStorage = async (userId: string) => {
   if (localStorage.getItem(getMigrationKey(userId))) return;
 
   const legacyFavorites = readStorage<Product[]>(getFavoritesKey(userId), []);
   const legacyCart = readStorage<CartItem[]>(getCartKey(userId), []);
   const favoriteIds = legacyFavorites.map(getProductId).filter(Boolean);
-  const cartItems = legacyCart
-    .map((item) => ({
-      productId: getProductId(item.product),
-      quantity: item.quantity,
-    }))
-    .filter((item) => item.productId && item.quantity > 0);
+  const cartItems = getCartSyncItems(legacyCart);
 
   if (favoriteIds.length > 0 || cartItems.length > 0) {
     await api.post<ShopStateResponse>("/shop/sync", {
@@ -77,6 +81,42 @@ const syncLegacyStorage = async (userId: string) => {
   }
 
   localStorage.setItem(getMigrationKey(userId), "true");
+};
+
+function getCartSyncItems(cart: CartItem[]) {
+  const cartQuantities = new Map<string, number>();
+
+  for (const item of cart) {
+    const productId = getProductId(item.product);
+    if (!productId || item.quantity <= 0) continue;
+
+    cartQuantities.set(
+      productId,
+      (cartQuantities.get(productId) ?? 0) + item.quantity,
+    );
+  }
+
+  const cartItems = Array.from(cartQuantities)
+    .map((item) => ({
+      productId: item[0],
+      quantity: item[1],
+    }))
+    .filter((item) => item.productId && item.quantity > 0);
+
+  return cartItems;
+}
+
+const syncGuestCart = async () => {
+  const guestCart = readStorage<CartItem[]>(guestCartKey, []);
+  const cartItems = getCartSyncItems(guestCart);
+
+  if (cartItems.length === 0) return;
+
+  await api.post<ShopStateResponse>("/shop/sync", {
+    favoriteIds: [],
+    cartItems,
+  });
+  localStorage.removeItem(guestCartKey);
 };
 
 const applyServerState = (data: ShopStateResponse) => ({
@@ -93,7 +133,12 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
   setActiveUser: async (userId) => {
     if (!userId) {
-      set({ activeUserId: null, favorites: [], cart: [], isSyncing: false });
+      set({
+        activeUserId: null,
+        favorites: [],
+        cart: normalizeCart(readStorage<CartItem[]>(guestCartKey, [])),
+        isSyncing: false,
+      });
       return;
     }
 
@@ -101,6 +146,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
     try {
       await syncLegacyStorage(userId);
+      await syncGuestCart();
       const { data } = await api.get<ShopStateResponse>("/shop");
       if (get().activeUserId === userId) {
         set(applyServerState(data));
@@ -146,7 +192,6 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
   addToCart: (product) => {
     const userId = get().activeUserId;
-    if (!userId) return;
 
     const productId = getProductId(product);
     const stock = getProductStock(product);
@@ -167,6 +212,11 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
     set({ cart });
 
+    if (!userId) {
+      saveGuestCart(cart);
+      return;
+    }
+
     void api
       .put<ShopStateResponse>(`/shop/cart/${productId}`, { quantity })
       .then(({ data }) => {
@@ -183,7 +233,6 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
   removeFromCart: (productId) => {
     const userId = get().activeUserId;
-    if (!userId) return;
 
     const previousCart = get().cart;
     const cart = previousCart.filter(
@@ -191,6 +240,11 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     );
 
     set({ cart });
+
+    if (!userId) {
+      saveGuestCart(cart);
+      return;
+    }
 
     void api
       .put<ShopStateResponse>(`/shop/cart/${productId}`, { quantity: 0 })
@@ -208,7 +262,6 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
   updateQuantity: (productId, quantity) => {
     const userId = get().activeUserId;
-    if (!userId) return;
 
     const previousCart = get().cart;
     const existing = previousCart.find(
@@ -228,6 +281,11 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
     set({ cart });
 
+    if (!userId) {
+      saveGuestCart(cart);
+      return;
+    }
+
     void api
       .put<ShopStateResponse>(`/shop/cart/${productId}`, {
         quantity: nextQuantity,
@@ -246,10 +304,14 @@ export const useShopStore = create<ShopStore>((set, get) => ({
 
   clearCart: () => {
     const userId = get().activeUserId;
-    if (!userId) return;
 
     const previousCart = get().cart;
     set({ cart: [] });
+
+    if (!userId) {
+      localStorage.removeItem(guestCartKey);
+      return;
+    }
 
     void api
       .delete<ShopStateResponse>("/shop/cart")

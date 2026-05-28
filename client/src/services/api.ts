@@ -1,8 +1,10 @@
 import axios from "axios";
 
-// Базовий URL бекенду — всі запити йдуть сюди
+// URL бекенду береться з .env, а для локальної розробки є запасний localhost.
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_URL,
 });
 
 // Interceptor — автоматично додає токен до кожного запиту
