@@ -192,12 +192,21 @@ export const createOrder = async (req: Request, res: Response) => {
     return res.status(400).json({ message: normalized.error });
   }
 
-  const order = await createOrderRecord({
-    orderNumber: createOrderNumber(),
-    ...normalized.data,
-  });
+  try {
+    const order = await createOrderRecord({
+      orderNumber: createOrderNumber(),
+      ...normalized.data,
+    });
 
-  res.status(201).json(order);
+    return res.status(201).json(order);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не вдалося оформити замовлення",
+    });
+  }
 };
 
 export const getAdminOrders = async (

@@ -29,9 +29,23 @@ const connectDB = async (): Promise<void> => {
         email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+        password_reset_code TEXT,
+        password_reset_expires TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_reset_code TEXT
+    `);
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMPTZ
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS users_password_reset_code_idx
+      ON users(password_reset_code)
     `);
 
     await pool.query(`
@@ -105,6 +119,32 @@ const connectDB = async (): Promise<void> => {
     `);
     await pool.query(`
       CREATE INDEX IF NOT EXISTS reviews_user_id_idx ON reviews(user_id)
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS favorites (
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, product_id)
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS favorites_user_id_idx ON favorites(user_id)
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cart_items (
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, product_id)
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS cart_items_user_id_idx ON cart_items(user_id)
     `);
 
     await pool.query(`

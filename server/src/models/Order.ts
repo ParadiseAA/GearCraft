@@ -93,44 +93,94 @@ export const createOrderRecord = async (input: {
   subtotal: number;
   total: number;
 }): Promise<IOrder> => {
-  const { rows } = await pool.query(
-    `
-      INSERT INTO orders (
-        order_number,
-        customer_name,
-        customer_phone,
-        customer_email,
-        delivery_method,
-        delivery_city,
-        delivery_address,
-        delivery_price,
-        payment_method,
-        comment,
-        items,
-        subtotal,
-        total
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING *
-    `,
-    [
-      input.orderNumber,
-      input.customer.name,
-      input.customer.phone,
-      input.customer.email || null,
-      input.delivery.method,
-      input.delivery.city,
-      input.delivery.address,
-      input.delivery.price,
-      input.payment,
-      input.comment || null,
-      JSON.stringify(input.items),
-      input.subtotal,
-      input.total,
-    ],
-  );
+  const client = await pool.connect();
 
-  return mapOrder(rows[0]);
+  try {
+    await client.query("BEGIN");
+
+    for (const item of input.items) {
+      const { rows } = await client.query(
+        `
+          SELECT title, stock
+          FROM products
+          WHERE id = $1
+          FOR UPDATE
+        `,
+        [item.productId],
+      );
+
+      const product = rows[0] as
+        | { title: string; stock: number | string }
+        | undefined;
+
+      if (!product) {
+        throw new Error(`Товар "${item.title}" не знайдено`);
+      }
+
+      const stock = Number(product.stock);
+
+      if (stock < item.quantity) {
+        throw new Error(
+          `Недостатньо товару "${product.title}" у наявності. Доступно: ${stock}`,
+        );
+      }
+
+      await client.query(
+        `
+          UPDATE products
+          SET stock = stock - $2, updated_at = NOW()
+          WHERE id = $1
+        `,
+        [item.productId, item.quantity],
+      );
+    }
+
+    const { rows } = await client.query(
+      `
+        INSERT INTO orders (
+          order_number,
+          customer_name,
+          customer_phone,
+          customer_email,
+          delivery_method,
+          delivery_city,
+          delivery_address,
+          delivery_price,
+          payment_method,
+          comment,
+          items,
+          subtotal,
+          total
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING *
+      `,
+      [
+        input.orderNumber,
+        input.customer.name,
+        input.customer.phone,
+        input.customer.email || null,
+        input.delivery.method,
+        input.delivery.city,
+        input.delivery.address,
+        input.delivery.price,
+        input.payment,
+        input.comment || null,
+        JSON.stringify(input.items),
+        input.subtotal,
+        input.total,
+      ],
+    );
+
+    await client.query("COMMIT");
+
+    return mapOrder(rows[0]);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const findOrdersPage = async (

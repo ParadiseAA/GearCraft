@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, ClipboardEvent, DragEvent, FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -249,7 +249,7 @@ export default function AdminPage() {
         pages: number;
         total: number;
       }>("/products/admin/all", {
-        params: { page: nextPage, limit: 15, noCache: true },
+        params: { page: nextPage, limit: 8, noCache: true },
       });
 
       setProducts(data.products);
@@ -883,96 +883,91 @@ export default function AdminPage() {
                     </thead>
                     <tbody className="divide-y divide-[#eadfd3]">
                       {orders.map((order) => (
-                        <tr key={order.id} className="align-middle">
-                          <td className="px-4 py-4">
-                            <p className="font-black text-[#171612]">
-                              {order.orderNumber}
-                            </p>
-                            <p className="mt-1 text-xs font-semibold text-[#7f6e5f]">
-                              {formatDate(order.createdAt)}
-                            </p>
-                          </td>
-                          <td className="max-w-[300px] px-4 py-4">
-                            <p className="font-semibold text-[#171612]">
-                              {order.customer.name}
-                            </p>
-                            <p className="mt-1 break-words text-xs text-[#6d5c4f]">
-                              {order.customer.email || order.customer.phone}
-                            </p>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-4 font-black text-[#171612]">
-                            {formatPrice(order.total)}
-                          </td>
-                          <td className="px-4 py-4 font-semibold text-[#171612]">
-                            {paidStatuses.has(order.status) ? "Так" : "Ні"}
-                          </td>
-                          <td className="px-4 py-4 text-[#6d5c4f]">-</td>
-                          <td className="px-4 py-4 font-semibold text-[#171612]">
-                            {deliveredStatuses.has(order.status) ? "Так" : "Ні"}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="grid w-fit min-w-[170px] gap-2">
-                              <span
-                                className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusBadgeClass(order.status)}`}
-                              >
-                                {statusLabels[order.status]}
-                              </span>
-                              <select
-                                value={order.status}
-                                disabled={statusSavingId === order.id}
-                                onChange={(event) =>
-                                  void changeOrderStatus(
-                                    order.id,
-                                    event.target.value as OrderStatus,
-                                  )
-                                }
-                                className="h-10 w-fit max-w-[210px] rounded-lg border border-[#eadfd3] bg-white px-2 pr-9 text-sm text-[#171612] outline-none transition focus:border-[#ff7a1a] disabled:opacity-60"
-                              >
-                                {statusOptions.map((status) => (
-                                  <option
-                                    key={status.value}
-                                    value={status.value}
-                                  >
-                                    {status.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExpandedOrderId((current) =>
-                                    current === order.id ? null : order.id,
-                                  )
-                                }
-                                className="rounded-lg border border-[#eadfd3] bg-white px-3 py-2 text-sm font-semibold text-[#171612] transition hover:bg-[#ff7a1a]/10"
-                              >
-                                Деталі
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setOrderDeleteTarget(order)}
-                                className="rounded-lg border border-[#ffb3a6] bg-white px-3 py-2 text-sm font-semibold text-[#d22f2f] transition hover:bg-[#ffe8e8]"
-                              >
-                                Видалити
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                        <Fragment key={order.id}>
+                          <tr className="align-middle">
+                            <td className="px-4 py-4">
+                              <p className="font-black text-[#171612]">
+                                {order.orderNumber}
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-[#7f6e5f]">
+                                {formatDate(order.createdAt)}
+                              </p>
+                            </td>
+                            <td className="max-w-[300px] px-4 py-4">
+                              <p className="font-semibold text-[#171612]">
+                                {order.customer.name}
+                              </p>
+                              <p className="mt-1 break-words text-xs text-[#6d5c4f]">
+                                {order.customer.email || order.customer.phone}
+                              </p>
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-4 font-black text-[#171612]">
+                              {formatPrice(order.total)}
+                            </td>
+                            <td className="px-4 py-4 font-semibold text-[#171612]">
+                              {paidStatuses.has(order.status) ? "Так" : "Ні"}
+                            </td>
+                            <td className="px-4 py-4 text-[#6d5c4f]">-</td>
+                            <td className="px-4 py-4 font-semibold text-[#171612]">
+                              {deliveredStatuses.has(order.status) ? "Так" : "Ні"}
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="grid w-fit min-w-[170px] gap-2">
+                                <span
+                                  className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusBadgeClass(order.status)}`}
+                                >
+                                  {statusLabels[order.status]}
+                                </span>
+                                <select
+                                  value={order.status}
+                                  disabled={statusSavingId === order.id}
+                                  onChange={(event) =>
+                                    void changeOrderStatus(
+                                      order.id,
+                                      event.target.value as OrderStatus,
+                                    )
+                                  }
+                                  className="h-10 w-fit max-w-[210px] rounded-lg border border-[#eadfd3] bg-white px-2 pr-9 text-sm text-[#171612] outline-none transition focus:border-[#ff7a1a] disabled:opacity-60"
+                                >
+                                  {statusOptions.map((status) => (
+                                    <option
+                                      key={status.value}
+                                      value={status.value}
+                                    >
+                                      {status.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedOrderId((current) =>
+                                      current === order.id ? null : order.id,
+                                    )
+                                  }
+                                  className="rounded-lg border border-[#eadfd3] bg-white px-3 py-2 text-sm font-semibold text-[#171612] transition hover:bg-[#ff7a1a]/10"
+                                >
+                                  Деталі
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setOrderDeleteTarget(order)}
+                                  className="rounded-lg border border-[#ffb3a6] bg-white px-3 py-2 text-sm font-semibold text-[#d22f2f] transition hover:bg-[#ffe8e8]"
+                                >
+                                  Видалити
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
 
-                  {orders.map(
-                    (order) =>
-                      expandedOrderId === order.id && (
-                        <div
-                          key={`${order.id}-details`}
-                          className="border-t border-[#eadfd3] bg-white px-4 py-5 lg:px-5"
-                        >
+                          {expandedOrderId === order.id && (
+                            <tr>
+                              <td colSpan={8} className="bg-white px-4 py-5 lg:px-5">
+                                <div>
                           <div className="grid gap-4 lg:grid-cols-3">
                             <section className="rounded-xl border border-[#eadfd3] bg-[#fffaf5] p-4">
                               <h4 className="text-sm font-black">Клієнт</h4>
@@ -1080,9 +1075,14 @@ export default function AdminPage() {
                               </p>
                             </div>
                           )}
-                        </div>
-                      ),
-                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
 

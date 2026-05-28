@@ -28,7 +28,7 @@ export interface IProduct {
   updatedAt: Date;
 }
 
-const mapProduct = (row: Record<string, unknown>): IProduct => {
+export const mapProduct = (row: Record<string, unknown>): IProduct => {
   const id = row.id as string;
   const sellerName = row.seller_name as string | undefined;
   const sellerEmail = row.seller_email as string | undefined;

@@ -34,6 +34,15 @@ interface AuthStore {
     password: string,
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  updateProfile: (input: {
+    name: string;
+    surname: string;
+    email: string;
+  }) => Promise<boolean>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   logout: () => void;
 }
@@ -57,12 +66,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
 
       localStorage.setItem("token", data.token);
-      useShopStore.getState().setActiveUser(data.user.id);
+      await useShopStore.getState().setActiveUser(data.user.id);
       set({ user: data.user, token: data.token, isLoading: false });
     } catch (err) {
       const error = err as AxiosError<ApiError>;
       set({
-        error: error.response?.data?.message || "Registration failed",
+        error: error.response?.data?.message || "Не вдалося зареєструватися",
         isLoading: false,
       });
     }
@@ -78,14 +87,51 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
 
       localStorage.setItem("token", data.token);
-      useShopStore.getState().setActiveUser(data.user.id);
+      await useShopStore.getState().setActiveUser(data.user.id);
       set({ user: data.user, token: data.token, isLoading: false });
     } catch (err) {
       const error = err as AxiosError<ApiError>;
       set({
-        error: error.response?.data?.message || "Login failed",
+        error: error.response?.data?.message || "Не вдалося увійти",
         isLoading: false,
       });
+    }
+  },
+
+  updateProfile: async (input) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const { data } = await api.put<User>("/auth/me", input);
+      set({ user: data, isLoading: false, error: null });
+      return true;
+    } catch (err) {
+      const error = err as AxiosError<ApiError>;
+      set({
+        error: error.response?.data?.message || "Не вдалося оновити профіль",
+        isLoading: false,
+      });
+      return false;
+    }
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      await api.put("/auth/me/password", {
+        currentPassword,
+        newPassword,
+      });
+      set({ isLoading: false, error: null });
+      return true;
+    } catch (err) {
+      const error = err as AxiosError<ApiError>;
+      set({
+        error: error.response?.data?.message || "Не вдалося змінити пароль",
+        isLoading: false,
+      });
+      return false;
     }
   },
 
@@ -93,7 +139,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     const token = localStorage.getItem("token");
 
     if (!token) {
-      useShopStore.getState().setActiveUser(null);
+      await useShopStore.getState().setActiveUser(null);
       set({
         user: null,
         token: null,
@@ -108,7 +154,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     try {
       const { data } = await api.get<User>("/auth/me");
-      useShopStore.getState().setActiveUser(data.id);
+      await useShopStore.getState().setActiveUser(data.id);
       set({
         user: data,
         token,
@@ -118,7 +164,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
     } catch {
       localStorage.removeItem("token");
-      useShopStore.getState().setActiveUser(null);
+      await useShopStore.getState().setActiveUser(null);
       set({
         user: null,
         token: null,
@@ -131,7 +177,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   logout: () => {
     localStorage.removeItem("token");
-    useShopStore.getState().setActiveUser(null);
+    void useShopStore.getState().setActiveUser(null);
     set({
       user: null,
       token: null,

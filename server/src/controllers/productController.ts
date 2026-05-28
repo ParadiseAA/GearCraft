@@ -106,7 +106,7 @@ export const getAdminProducts = async (
   res: Response,
 ) => {
   const page = Number(req.query.page ?? 1);
-  const limit = Number(req.query.limit ?? 15);
+  const limit = Number(req.query.limit ?? 8);
 
   if (req.query.page || req.query.limit) {
     const result = await findProductsPage(page, limit);

@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth";
 import mediaRoutes from "./routes/media";
 import orderRoutes from "./routes/orders";
 import productRoutes from "./routes/products";
+import shopRoutes from "./routes/shop";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/upload", mediaRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/shop", shopRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Server is running!" });

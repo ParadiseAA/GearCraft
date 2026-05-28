@@ -6,6 +6,29 @@ import ProductCard from "../components/ProductCard";
 import SiteHeader from "../components/SiteHeader";
 import type { Product } from "../types/product";
 
+type SortOption =
+  | "newest"
+  | "price-asc"
+  | "price-desc"
+  | "rating-desc"
+  | "name-asc";
+
+const sortOptions: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "Новинки" },
+  { value: "price-asc", label: "Ціна: від низької до високої" },
+  { value: "price-desc", label: "Ціна: від високої до низької" },
+  { value: "rating-desc", label: "Найкращі за рейтингом" },
+  { value: "name-asc", label: "Назва: від А до Я" },
+];
+
+const getProductDate = (product: Product) => {
+  const timestamp = new Date(product.createdAt).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const getProductTitle = (product: Product) =>
+  product.name || product.title || "";
+
 export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get("q") ?? "";
@@ -13,6 +36,7 @@ export default function CatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +90,30 @@ export default function CatalogPage() {
     });
   }, [maxPrice, minPrice, products, search, selectedCategory]);
 
+  const visibleProducts = useMemo(() => {
+    return [...filteredProducts].sort((first, second) => {
+      switch (sortBy) {
+        case "price-asc":
+          return first.price - second.price;
+        case "price-desc":
+          return second.price - first.price;
+        case "rating-desc":
+          return (
+            second.rating - first.rating ||
+            second.reviewsCount - first.reviewsCount
+          );
+        case "name-asc":
+          return getProductTitle(first).localeCompare(
+            getProductTitle(second),
+            "uk",
+          );
+        case "newest":
+        default:
+          return getProductDate(second) - getProductDate(first);
+      }
+    });
+  }, [filteredProducts, sortBy]);
+
   const hasActiveFilters = Boolean(
     search || selectedCategory || minPrice || maxPrice,
   );
@@ -81,15 +129,15 @@ export default function CatalogPage() {
     <div className="min-h-screen bg-white text-[#171612]">
       <SiteHeader searchPlaceholder="Пошук по каталогу..." />
 
-      <main className="mx-auto max-w-[1320px] px-4 py-6 lg:px-6 lg:py-8">
+      <main className="mx-auto max-w-[1320px] px-4 py-6 lg:px-6 lg:pt-0 lg:pb-12">
         <section className="mt-8">
-          <div className="mb-5 flex items-center justify-between gap-4">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-2xl font-black tracking-[-0.03em] text-[#171612]">
                 Усі товари
               </h2>
               <p className="mt-1 text-sm text-[#6d5c4f]">
-                Знайдено: {filteredProducts.length}
+                Знайдено: {visibleProducts.length}
               </p>
               {search && (
                 <p className="mt-1 text-sm text-[#6d5c4f]">
@@ -97,6 +145,23 @@ export default function CatalogPage() {
                 </p>
               )}
             </div>
+
+            <label className="w-full text-sm font-semibold text-[#6d5c4f] sm:w-[290px]">
+              Сортування
+              <select
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value as SortOption)
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-[#eadfd3] bg-[#fffaf5] px-3 text-sm font-semibold text-[#171612] outline-none transition hover:border-[#ff7a1a] focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {isLoading ? (
@@ -215,13 +280,13 @@ export default function CatalogPage() {
                 </button>
               </aside>
 
-              {filteredProducts.length === 0 ? (
+              {visibleProducts.length === 0 ? (
                 <div className="rounded-2xl border border-[#eadfd3] bg-white p-10 text-center text-[#6d5c4f] shadow-[0_12px_32px_rgba(0,0,0,0.05)]">
                   За вашим запитом поки нічого не знайдено.
                 </div>
               ) : (
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {filteredProducts.map((product) => (
+                  {visibleProducts.map((product) => (
                     <ProductCard key={product._id} product={product} />
                   ))}
                 </div>
