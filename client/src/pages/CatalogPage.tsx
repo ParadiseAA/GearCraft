@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { TiRefreshOutline, TiTimes } from "react-icons/ti";
+import { TiRefreshOutline, TiTimes, TiTrash } from "react-icons/ti";
 import api from "../services/api";
 import ProductCard from "../components/ProductCard";
 import SiteHeader from "../components/SiteHeader";
 import type { Product } from "../types/product";
 
 export default function CatalogPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get("q") ?? "";
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -66,12 +66,15 @@ export default function CatalogPage() {
     });
   }, [maxPrice, minPrice, products, search, selectedCategory]);
 
-  const hasActiveFilters = selectedCategory || minPrice || maxPrice;
+  const hasActiveFilters = Boolean(
+    search || selectedCategory || minPrice || maxPrice,
+  );
 
   const clearFilters = () => {
     setSelectedCategory("");
     setMinPrice("");
     setMaxPrice("");
+    setSearchParams({});
   };
 
   return (
@@ -129,6 +132,15 @@ export default function CatalogPage() {
                   )}
                 </div>
 
+                {search && (
+                  <div className="mt-4 rounded-xl border border-[#eadfd3] bg-white px-3 py-2 text-sm text-[#6d5c4f]">
+                    Пошук:{" "}
+                    <span className="font-semibold text-[#171612]">
+                      {search}
+                    </span>
+                  </div>
+                )}
+
                 <div className="mt-5">
                   <p className="text-sm font-semibold text-[#6d5c4f]">
                     Категорія
@@ -163,7 +175,9 @@ export default function CatalogPage() {
                 </div>
 
                 <div className="mt-6">
-                  <p className="text-sm font-semibold text-[#6d5c4f]">Ціна</p>
+                  <p className="text-sm font-semibold text-[#6d5c4f]">
+                    Ціна, грн
+                  </p>
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <label className="text-xs font-semibold text-[#7f6e5f]">
                       Від
@@ -189,6 +203,16 @@ export default function CatalogPage() {
                     </label>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  disabled={!hasActiveFilters}
+                  className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#eadfd3] bg-white px-4 text-sm font-semibold text-[#171612] transition hover:border-[#ff7a1a] hover:bg-[#fff4eb] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[#eadfd3] disabled:hover:bg-white"
+                >
+                  <TiTrash className="text-lg text-[#ff7a1a]" />
+                  Очистити фільтри
+                </button>
               </aside>
 
               {filteredProducts.length === 0 ? (

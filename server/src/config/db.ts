@@ -89,6 +89,25 @@ const connectDB = async (): Promise<void> => {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS reviews (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        comment TEXT NOT NULL CHECK (char_length(comment) <= 1000),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (product_id, user_id)
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS reviews_product_id_idx ON reviews(product_id)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS reviews_user_id_idx ON reviews(user_id)
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         order_number TEXT NOT NULL UNIQUE,

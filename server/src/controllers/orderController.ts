@@ -42,6 +42,43 @@ const createOrderNumber = () => {
   return `GC-${datePart}-${randomPart}`;
 };
 
+const ukrainianMobileCodes = new Set([
+  "39",
+  "50",
+  "63",
+  "66",
+  "67",
+  "68",
+  "73",
+  "91",
+  "92",
+  "93",
+  "94",
+  "95",
+  "96",
+  "97",
+  "98",
+  "99",
+]);
+
+const normalizePhone = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  const localDigits =
+    digits.length === 12 && digits.startsWith("380")
+      ? digits.slice(2)
+      : digits.length === 10 && digits.startsWith("0")
+        ? digits
+        : "";
+
+  if (!localDigits) return null;
+
+  const operatorCode = localDigits.slice(1, 3);
+
+  if (!ukrainianMobileCodes.has(operatorCode)) return null;
+
+  return `+38${localDigits}`;
+};
+
 const normalizeOrderInput = (body: Record<string, unknown>) => {
   const customer = (body.customer ?? {}) as Record<string, unknown>;
   const delivery = (body.delivery ?? {}) as Record<string, unknown>;
@@ -57,12 +94,13 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
   const items = Array.isArray(body.items) ? body.items : [];
   const subtotal = Number(body.subtotal);
   const total = Number(body.total);
+  const normalizedPhone = normalizePhone(phone);
 
   if (name.length < 2 || name.length > 160) {
     return { error: "Customer name is required and must be up to 160 characters" };
   }
 
-  if (phone.replace(/\D/g, "").length < 10 || phone.length > 40) {
+  if (!normalizedPhone || phone.length > 40) {
     return { error: "A valid customer phone is required" };
   }
 
@@ -131,7 +169,7 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
 
   return {
     data: {
-      customer: { name, phone, email },
+      customer: { name, phone: normalizedPhone, email },
       delivery: {
         method: deliveryMethod,
         city,

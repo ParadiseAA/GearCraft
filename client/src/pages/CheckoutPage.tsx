@@ -45,17 +45,65 @@ function formatPrice(value: number) {
   })}`;
 }
 
+const ukrainianMobileCodes = new Set([
+  "39",
+  "50",
+  "63",
+  "66",
+  "67",
+  "68",
+  "73",
+  "91",
+  "92",
+  "93",
+  "94",
+  "95",
+  "96",
+  "97",
+  "98",
+  "99",
+]);
+
+function normalizePhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const localDigits =
+    digits.length === 12 && digits.startsWith("380")
+      ? digits.slice(2)
+      : digits.length === 10 && digits.startsWith("0")
+        ? digits
+        : "";
+
+  if (!localDigits) return null;
+
+  const operatorCode = localDigits.slice(1, 3);
+
+  if (!ukrainianMobileCodes.has(operatorCode)) return null;
+
+  return `+38${localDigits}`;
+}
+
+function formatPhoneInput(value: string) {
+  const normalized = normalizePhone(value);
+
+  if (!normalized) return value;
+
+  return normalized.replace(
+    /^\+380(\d{2})(\d{3})(\d{2})(\d{2})$/,
+    "+380 $1 $2 $3 $4",
+  );
+}
+
 function validateCheckout(form: CheckoutForm) {
   const errors: CheckoutErrors = {};
-  const phoneDigits = form.phone.replace(/\D/g, "");
   const email = form.email.trim();
 
   if (form.name.trim().length < 2) {
     errors.name = "Вкажіть ім'я та прізвище.";
   }
 
-  if (phoneDigits.length < 10) {
-    errors.phone = "Вкажіть коректний номер телефону.";
+  if (!normalizePhone(form.phone)) {
+    errors.phone =
+      "Вкажіть український мобільний номер у форматі +380 XX XXX XX XX або 0XX XXX XX XX.";
   }
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -63,7 +111,7 @@ function validateCheckout(form: CheckoutForm) {
   }
 
   if (form.city.trim().length < 2) {
-    errors.city = "Вкажіть місто.";
+    errors.city = "Вкажіть населений пункт.";
   }
 
   if (form.delivery !== "pickup" && form.address.trim().length < 3) {
@@ -140,10 +188,21 @@ export default function CheckoutPage() {
       return;
     }
 
+    const normalizedPhone = normalizePhone(form.phone);
+
+    if (!normalizedPhone) {
+      setErrors((current) => ({
+        ...current,
+        phone:
+          "Вкажіть український мобільний номер у форматі +380 XX XXX XX XX або 0XX XXX XX XX.",
+      }));
+      return;
+    }
+
     const orderPayload = {
       customer: {
         name: form.name.trim() || userFullName,
-        phone: form.phone.trim(),
+        phone: normalizedPhone,
         email: user?.email || form.email.trim(),
       },
       delivery: {
@@ -280,9 +339,15 @@ export default function CheckoutPage() {
                 <label className="grid gap-2 text-sm font-semibold text-[#6d5c4f]">
                   Телефон
                   <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     value={form.phone}
                     onChange={(event) =>
                       updateForm("phone", event.target.value)
+                    }
+                    onBlur={() =>
+                      updateForm("phone", formatPhoneInput(form.phone))
                     }
                     className="h-12 rounded-xl border border-[#eadfd3] bg-white px-4 text-sm text-[#171612] outline-none transition focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
                     placeholder="+380 67 123 45 67"
@@ -313,12 +378,12 @@ export default function CheckoutPage() {
                 </label>
 
                 <label className="grid gap-2 text-sm font-semibold text-[#6d5c4f]">
-                  Місто
+                  Населений пункт
                   <input
                     value={form.city}
                     onChange={(event) => updateForm("city", event.target.value)}
                     className="h-12 rounded-xl border border-[#eadfd3] bg-white px-4 text-sm text-[#171612] outline-none transition focus:border-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/20"
-                    placeholder="Київ"
+                    placeholder="Ваше місто або населений пункт"
                   />
                   {errors.city && (
                     <span className="text-xs text-[#e25666]">

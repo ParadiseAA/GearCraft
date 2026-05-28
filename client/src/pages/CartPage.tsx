@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { TiMinus, TiPlus, TiTrash } from "react-icons/ti";
+import { TiShoppingCart, TiMinus, TiPlus, TiTrash } from "react-icons/ti";
 import SiteHeader from "../components/SiteHeader";
 import {
   getProductId,
@@ -33,16 +33,17 @@ export default function CartPage() {
         <h1 className="text-3xl font-black tracking-[-0.03em]">Кошик</h1>
 
         {cart.length === 0 ? (
-          <div className="mt-8 rounded-lg border border-[#ececec] bg-white p-10 text-center text-[#6d5c4f] shadow-[0_1px_5px_rgba(0,0,0,0.12)]">
-            Кошик порожній.
-            <div className="mt-5">
-              <Link
-                to="/catalog"
-                className="inline-flex rounded-xl bg-[#FF7A1a] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110"
-              >
-                Перейти в каталог
-              </Link>
-            </div>
+          <div className="mt-8 flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#eadfd3] bg-white px-5 py-10 text-center">
+            <TiShoppingCart className="text-[46px] text-[#cdbca9]" />
+            <p className="mt-4 text-sm font-medium text-[#6d5c4f]">
+              Кошик порожній.
+            </p>
+            <Link
+              to="/catalog"
+              className="mt-5 inline-flex rounded-xl bg-[#ff7a1a] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110"
+            >
+              Переглянути товари
+            </Link>
           </div>
         ) : (
           <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
