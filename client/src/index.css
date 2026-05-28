@@ -10,3 +10,11 @@ body {
   background: #ffffff;
   color: #171612;
 }
+
+:where(a, button, [role="button"], summary, label, select, input[type="button"], input[type="checkbox"], input[type="radio"], input[type="reset"], input[type="submit"]) {
+  cursor: pointer;
+}
+
+:where(button:disabled, input:disabled, select:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}

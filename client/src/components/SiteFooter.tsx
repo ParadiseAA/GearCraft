@@ -78,12 +78,12 @@ export default function SiteFooter() {
             <Link to="/catalog" className="transition hover:text-[#ff9a4d]">
               Товари
             </Link>
-            <a href="#" className="transition hover:text-[#ff9a4d]">
+            <Link to="/privacy" className="transition hover:text-[#ff9a4d]">
               Політика конфіденційності
-            </a>
-            <a href="#" className="transition hover:text-[#ff9a4d]">
+            </Link>
+            <Link to="/contacts" className="transition hover:text-[#ff9a4d]">
               Контакти
-            </a>
+            </Link>
           </nav>
         </div>
       </div>

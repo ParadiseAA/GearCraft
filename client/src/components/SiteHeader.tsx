@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { FiLogOut } from "react-icons/fi";
 import {
   TiHeartOutline,
   TiHomeOutline,
-  TiPowerOutline,
   TiShoppingCart,
   TiThLargeOutline,
   TiUser,
@@ -166,7 +166,7 @@ export default function SiteHeader({
                   className="peer inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1a1714] transition hover:bg-[#ff7a1a]/10"
                   aria-label="Вийти з акаунта"
                 >
-                  <TiPowerOutline className="text-[22px] text-current" />
+                  <FiLogOut className="text-[21px] text-current" />
                 </button>
                 <span className="pointer-events-none absolute right-0 top-full z-[1200] mt-2 whitespace-nowrap rounded-lg border border-[#eadfd3] bg-white px-3 py-1.5 text-xs font-semibold text-[#171612] opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.12)] transition peer-hover:opacity-100">
                   Вийти з акаунта

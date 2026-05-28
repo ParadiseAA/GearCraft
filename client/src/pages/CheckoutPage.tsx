@@ -27,6 +27,8 @@ interface CheckoutErrors {
   address?: string;
 }
 
+type SavedCheckoutForm = Omit<CheckoutForm, "comment">;
+
 const initialForm: CheckoutForm = {
   name: "",
   phone: "",
@@ -37,6 +39,57 @@ const initialForm: CheckoutForm = {
   payment: "cash",
   comment: "",
 };
+
+function getCheckoutStorageKey(userId?: string) {
+  return `gearcraft:${userId ? `user:${userId}` : "guest"}:checkout-data`;
+}
+
+function getSavedCheckoutForm(form: CheckoutForm): SavedCheckoutForm {
+  return {
+    name: form.name,
+    phone: form.phone,
+    email: form.email,
+    city: form.city,
+    address: form.address,
+    delivery: form.delivery,
+    payment: form.payment,
+  };
+}
+
+function isDeliveryMethod(value: unknown): value is DeliveryMethod {
+  return value === "pickup" || value === "nova-poshta" || value === "courier";
+}
+
+function isPaymentMethod(value: unknown): value is PaymentMethod {
+  return value === "cash" || value === "card";
+}
+
+function readSavedCheckoutData(key: string): SavedCheckoutForm | null {
+  try {
+    const value = localStorage.getItem(key);
+    if (!value) return null;
+
+    const parsed = JSON.parse(value) as Partial<SavedCheckoutForm>;
+
+    return {
+      name: typeof parsed.name === "string" ? parsed.name : "",
+      phone: typeof parsed.phone === "string" ? parsed.phone : "",
+      email: typeof parsed.email === "string" ? parsed.email : "",
+      city: typeof parsed.city === "string" ? parsed.city : "",
+      address: typeof parsed.address === "string" ? parsed.address : "",
+      delivery: isDeliveryMethod(parsed.delivery)
+        ? parsed.delivery
+        : initialForm.delivery,
+      payment: isPaymentMethod(parsed.payment) ? parsed.payment : initialForm.payment,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveCheckoutData(key: string, form: CheckoutForm) {
+  localStorage.setItem(key, JSON.stringify(getSavedCheckoutForm(form)));
+}
 
 function formatPrice(value: number) {
   return `₴${value.toLocaleString("uk-UA", {
@@ -130,6 +183,7 @@ export default function CheckoutPage() {
   const [orderNumber, setOrderNumber] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveCheckoutInfo, setSaveCheckoutInfo] = useState(false);
 
   const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = cart.reduce(
@@ -139,6 +193,19 @@ export default function CheckoutPage() {
   const deliveryPrice = form.delivery === "courier" ? 150 : 0;
   const grandTotal = total + deliveryPrice;
   const userFullName = [user?.name, user?.surname].filter(Boolean).join(" ");
+  const checkoutStorageKey = getCheckoutStorageKey(user?.id);
+
+  useEffect(() => {
+    const savedData = readSavedCheckoutData(checkoutStorageKey);
+    setSaveCheckoutInfo(Boolean(savedData));
+
+    if (!savedData) return;
+
+    setForm((current) => ({
+      ...current,
+      ...savedData,
+    }));
+  }, [checkoutStorageKey]);
 
   useEffect(() => {
     if (!user) return;
@@ -172,9 +239,27 @@ export default function CheckoutPage() {
     field: K,
     value: CheckoutForm[K],
   ) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      const nextForm = { ...current, [field]: value };
+
+      if (saveCheckoutInfo) {
+        saveCheckoutData(checkoutStorageKey, nextForm);
+      }
+
+      return nextForm;
+    });
     setErrors((current) => ({ ...current, [field]: undefined }));
     setSubmitError("");
+  }
+
+  function updateSaveCheckoutInfo(checked: boolean) {
+    setSaveCheckoutInfo(checked);
+
+    if (checked) {
+      saveCheckoutData(checkoutStorageKey, form);
+    } else {
+      localStorage.removeItem(checkoutStorageKey);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -223,6 +308,10 @@ export default function CheckoutPage() {
 
     try {
       setIsSubmitting(true);
+      if (saveCheckoutInfo) {
+        saveCheckoutData(checkoutStorageKey, form);
+      }
+
       const { data } = await axiosInstance.post<{ orderNumber: string }>(
         "/orders",
         orderPayload,
@@ -317,7 +406,7 @@ export default function CheckoutPage() {
             onSubmit={handleSubmit}
             className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]"
           >
-            <section className="rounded-2xl border border-[#eadfd3] bg-white p-5 shadow-[0_8px_24px_rgba(23,22,18,0.06)]">
+            <section className="rounded-2xl border border-[#eadfd3] bg-white p-5">
               <h2 className="text-[22px] font-black">Дані для оформлення</h2>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -511,10 +600,24 @@ export default function CheckoutPage() {
                     placeholder="Зручний час для дзвінка або додаткові побажання"
                   />
                 </label>
+
+                <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-[#6d5c4f]">
+                  <input
+                    type="checkbox"
+                    checked={saveCheckoutInfo}
+                    onChange={(event) =>
+                      updateSaveCheckoutInfo(event.target.checked)
+                    }
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#e25666]"
+                  />
+                  <span>
+                    Зберегти ці дані для швидшого оформлення надалі
+                  </span>
+                </label>
               </div>
             </section>
 
-            <aside className="self-start rounded-2xl border border-[#eadfd3] bg-[#fffaf5] p-6 shadow-[0_8px_24px_rgba(23,22,18,0.06)] xl:sticky xl:top-6">
+            <aside className="self-start rounded-2xl border border-[#eadfd3] bg-[#fffaf5] p-6 xl:sticky xl:top-6">
               <h2 className="text-[22px] font-black">Ваше замовлення</h2>
 
               <div className="mt-5 grid gap-3">

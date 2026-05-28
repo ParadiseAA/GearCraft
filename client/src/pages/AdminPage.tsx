@@ -17,6 +17,7 @@ import type { Product } from "../types/product";
 
 type AdminTab = "products" | "orders" | "payments" | "promos";
 
+// Значення форми зберігаються як рядки, бо HTML inputs повертають string.
 interface ProductForm {
   name: string;
   category: string;
@@ -61,6 +62,7 @@ interface AdminOrder {
   createdAt: string;
 }
 
+// Один список вкладок керує і кнопками в UI, і перевіркою tab-параметра в URL.
 const tabs: { id: AdminTab; label: string }[] = [
   { id: "products", label: "Товари" },
   { id: "orders", label: "Замовлення" },
@@ -78,10 +80,12 @@ const emptyForm: ProductForm = {
   imageUrl: "",
 };
 
+// У різних відповідях товар може мати id або _id, тому нормалізуємо це тут.
 function getProductId(product: Product) {
   return product._id || product.id || "";
 }
 
+// Очищає URL зображень від порожніх значень і дублікатів.
 function uniqueUrls(urls: string[]) {
   return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)));
 }
@@ -158,6 +162,7 @@ const paidStatuses = new Set<OrderStatus>([
 
 const deliveredStatuses = new Set<OrderStatus>(["delivered", "completed"]);
 
+// Колір статусу залежить від бізнес-стану замовлення.
 function getStatusBadgeClass(status: OrderStatus) {
   if (status === "cancelled" || status === "returned") {
     return "bg-[#ffe8e8] text-[#d22f2f]";
@@ -174,6 +179,7 @@ function getStatusBadgeClass(status: OrderStatus) {
   return "bg-[#fff4eb] text-[#a64e0d]";
 }
 
+// Спільне підтвердження для небезпечних дій: видалення товару або замовлення.
 function ConfirmModal({
   title,
   message,
@@ -213,6 +219,8 @@ function ConfirmModal({
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Основні дані адмінки: активна вкладка, списки, пагінація та відкриті деталі.
   const [activeTab, setActiveTab] = useState<AdminTab>("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
@@ -223,6 +231,8 @@ export default function AdminPage() {
   const [ordersPages, setOrdersPages] = useState(1);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [statusSavingId, setStatusSavingId] = useState<string | null>(null);
+
+  // Створення і редагування товару використовують одну форму.
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -236,8 +246,10 @@ export default function AdminPage() {
   const [selectedFileNames, setSelectedFileNames] = useState<string[]>([]);
   const [lastUploadedUrls, setLastUploadedUrls] = useState<string[]>([]);
 
+  // Перше зображення в списку є головним фото товару.
   const firstImage = form.images[0] ?? "";
 
+  // Завантажує повний список товарів для адмінки з окремою пагінацією.
   const loadProducts = useCallback(async (nextPage: number) => {
     setIsLoading(true);
     setError(null);
@@ -263,6 +275,7 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Замовлення вантажаться тільки на вкладці orders і мають власні сторінки.
   const loadOrders = useCallback(async (nextPage: number) => {
     setIsLoading(true);
     setError(null);
@@ -288,6 +301,8 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Вкладка синхронізується з URL і localStorage, щоб після reload адмін
+  // повертався в останній відкритий розділ.
   useEffect(() => {
     const tabParam = searchParams.get("tab") as AdminTab | null;
     const savedTab = localStorage.getItem("adminTab") as AdminTab | null;
@@ -304,6 +319,7 @@ export default function AdminPage() {
     }
   }, [searchParams, setSearchParams]);
 
+  // При зміні вкладки завантажуємо лише ті дані, які потрібні зараз.
   useEffect(() => {
     if (activeTab === "products") {
       void loadProducts(1);
@@ -313,12 +329,14 @@ export default function AdminPage() {
     }
   }, [activeTab, loadOrders, loadProducts]);
 
+  // Оновлює UI, URL і localStorage одним кліком по вкладці.
   const changeTab = (tab: AdminTab) => {
     setActiveTab(tab);
     localStorage.setItem("adminTab", tab);
     setSearchParams({ tab });
   };
 
+  // Повертає форму до режиму створення нового товару.
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -326,6 +344,7 @@ export default function AdminPage() {
     setLastUploadedUrls([]);
   };
 
+  // Заповнює форму даними товару і переводить її в режим редагування.
   const editProduct = (product: Product) => {
     setEditingId(getProductId(product));
     setForm({
@@ -340,6 +359,7 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Ручний URL додається до того ж масиву, що й завантажені файли.
   const addImageUrl = () => {
     setForm((current) => ({
       ...current,
@@ -355,6 +375,7 @@ export default function AdminPage() {
     }));
   };
 
+  // Спільна логіка upload для file input, drag-and-drop і paste з буфера.
   const uploadFiles = async (files: File[]) => {
     const imageFiles = files.filter((file) =>
       ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(
@@ -387,11 +408,13 @@ export default function AdminPage() {
     }
   };
 
+  // Очищує input після upload, щоб той самий файл можна було вибрати повторно.
   const uploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
     await uploadFiles(Array.from(event.target.files ?? []));
     event.target.value = "";
   };
 
+  // Якщо в буфері є картинка, перехоплюємо paste і завантажуємо її як файл.
   const pasteImage = (event: ClipboardEvent<HTMLDivElement>) => {
     const files = Array.from(event.clipboardData.files);
     if (files.some((file) => file.type.startsWith("image/"))) {
@@ -400,11 +423,13 @@ export default function AdminPage() {
     }
   };
 
+  // Drag-and-drop проходить через ту саму перевірку форматів, що й file input.
   const dropImage = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     void uploadFiles(Array.from(event.dataTransfer.files));
   };
 
+  // Готує payload для API і вибирає створення або оновлення за editingId.
   const saveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
@@ -436,6 +461,7 @@ export default function AdminPage() {
     }
   };
 
+  // Видалення товару виконується тільки після підтвердження в modal.
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
@@ -448,6 +474,7 @@ export default function AdminPage() {
     }
   };
 
+  // Оновлює статус на сервері й замінює відповідне замовлення в локальному списку.
   const changeOrderStatus = async (orderId: string, status: OrderStatus) => {
     setStatusSavingId(orderId);
     setError(null);
@@ -467,6 +494,7 @@ export default function AdminPage() {
     }
   };
 
+  // Після видалення замовлення перезавантажуємо поточну сторінку списку.
   const confirmOrderDelete = async () => {
     if (!orderDeleteTarget) return;
 
@@ -480,6 +508,7 @@ export default function AdminPage() {
     }
   };
 
+  // Метрики для коротких карток у вкладці товарів.
   const summary = useMemo(
     () => [
       { label: "Товари", value: total },
