@@ -34,6 +34,8 @@ export const protect = (
   }
 };
 
+// Використовується там, де гість теж має доступ, але авторизованого користувача
+// треба прив'язати до дії, наприклад під час створення замовлення.
 export const optionalAuth = (
   req: AuthenticatedRequest,
   res: Response,

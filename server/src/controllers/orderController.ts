@@ -127,6 +127,8 @@ const normalizeOrderInput = (body: Record<string, unknown>) => {
     return { error: "Comment must be up to 1000 characters" };
   }
 
+  // З checkout нам потрібні тільки productId і quantity. Назву, фото, ціну
+  // та фінальні суми сервер бере з бази, щоб клієнт не міг підмінити ціну.
   const itemQuantities = new Map<string, number>();
 
   for (const item of items) {

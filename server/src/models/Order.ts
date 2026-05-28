@@ -101,6 +101,8 @@ export const createOrderRecord = async (input: {
   try {
     await client.query("BEGIN");
 
+    // Вся фінансова частина формується в транзакції: блокуємо товари,
+    // перевіряємо залишок, списуємо склад і рахуємо суми за цінами з бази.
     const orderItems: OrderItem[] = [];
 
     for (const item of input.items) {
@@ -256,6 +258,8 @@ export const findOrdersByCustomerEmail = async (
   return rows.map(mapOrder);
 };
 
+// Нові замовлення шукаємо за user_id. Перевірка email лишається як fallback
+// для старих або гостьових замовлень, які ще не мали user_id.
 export const findOrdersByUser = async (input: {
   userId: string;
   email: string;
