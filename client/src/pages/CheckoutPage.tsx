@@ -80,7 +80,9 @@ function readSavedCheckoutData(key: string): SavedCheckoutForm | null {
       delivery: isDeliveryMethod(parsed.delivery)
         ? parsed.delivery
         : initialForm.delivery,
-      payment: isPaymentMethod(parsed.payment) ? parsed.payment : initialForm.payment,
+      payment: isPaymentMethod(parsed.payment)
+        ? parsed.payment
+        : initialForm.payment,
     };
   } catch {
     return null;
@@ -610,9 +612,7 @@ export default function CheckoutPage() {
                     }
                     className="mt-0.5 h-4 w-4 shrink-0 accent-[#e25666]"
                   />
-                  <span>
-                    Зберегти ці дані для швидшого оформлення надалі
-                  </span>
+                  <span>Зберегти ці дані для швидшого оформлення надалі</span>
                 </label>
               </div>
             </section>
