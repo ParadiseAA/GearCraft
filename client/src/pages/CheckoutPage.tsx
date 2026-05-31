@@ -674,11 +674,6 @@ export default function CheckoutPage() {
                   {submitError}
                 </p>
               )}
-
-              <p className="mt-4 text-center text-xs font-semibold leading-5 text-[#8b7b6d]">
-                Після підтвердження замовлення збережеться в базі даних, а кошик
-                очиститься.
-              </p>
             </aside>
           </form>
         )}
