@@ -7,9 +7,6 @@ export const uploadProductImage = async (file: File) => {
   const { data } = await axiosInstance.post<{ url: string }>(
     "/upload",
     formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
   );
 
   return data.url;

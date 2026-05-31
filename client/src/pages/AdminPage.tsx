@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import type { AxiosError } from "axios";
 import type { ChangeEvent, ClipboardEvent, DragEvent, FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -63,10 +64,18 @@ interface AdminOrder {
 }
 
 // Один список вкладок керує і кнопками в UI, і перевіркою tab-параметра в URL.
+interface ApiError {
+  message?: string;
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const axiosError = error as AxiosError<ApiError>;
+  return axiosError.response?.data?.message || fallback;
+}
+
 const tabs: { id: AdminTab; label: string }[] = [
   { id: "products", label: "Товари" },
   { id: "orders", label: "Замовлення" },
-  { id: "payments", label: "Оплати" },
 ];
 
 const emptyForm: ProductForm = {
@@ -400,8 +409,8 @@ export default function AdminPage() {
         images: uniqueUrls([...current.images, ...uploadedUrls]),
       }));
       setLastUploadedUrls(uploadedUrls);
-    } catch {
-      setError("Не вдалося завантажити зображення.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Не вдалося завантажити зображення."));
     } finally {
       setIsUploading(false);
     }
@@ -453,8 +462,13 @@ export default function AdminPage() {
 
       resetForm();
       await loadProducts(page);
-    } catch {
-      setError("Не вдалося зберегти товар. Перевірте всі поля.");
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Не вдалося зберегти товар. Перевірте всі поля.",
+        ),
+      );
     } finally {
       setIsSaving(false);
     }

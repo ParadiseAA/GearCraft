@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { findUserById } from "../models/User";
 
 type UserRole = "user" | "admin";
 
@@ -10,7 +11,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export const protect = (
+export const protect = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
@@ -24,10 +25,14 @@ export const protect = (
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
       id: string;
-      role: UserRole;
     };
 
-    req.user = { id: decoded.id, role: decoded.role };
+    const user = await findUserById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: "Сесія недійсна, увійдіть знову" });
+    }
+
+    req.user = { id: user.id, role: user.role };
     next();
   } catch {
     return res.status(401).json({ message: "Сесія недійсна, увійдіть знову" });
@@ -36,7 +41,7 @@ export const protect = (
 
 // Використовується там, де гість теж має доступ, але авторизованого користувача
 // треба прив'язати до дії, наприклад під час створення замовлення.
-export const optionalAuth = (
+export const optionalAuth = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
@@ -50,10 +55,10 @@ export const optionalAuth = (
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
       id: string;
-      role: UserRole;
     };
 
-    req.user = { id: decoded.id, role: decoded.role };
+    const user = await findUserById(decoded.id);
+    req.user = user ? { id: user.id, role: user.role } : undefined;
   } catch {
     req.user = undefined;
   }
