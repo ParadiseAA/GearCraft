@@ -41,7 +41,7 @@ const initialForm: CheckoutForm = {
 };
 
 function getCheckoutStorageKey(userId?: string) {
-  return `gearcraft:${userId ? `user:${userId}` : "guest"}:checkout-data`;
+  return `gearrecraft:${userId ? `user:${userId}` : "guest"}:checkout-data`;
 }
 
 function getSavedCheckoutForm(form: CheckoutForm): SavedCheckoutForm {

@@ -50,7 +50,7 @@ export default function HomePage() {
 
           <div className="relative max-w-[560px]">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff9a4d]">
-              GearCraft handmade metal art
+              GearreCraft handmade metal art
             </p>
             <h1 className="mt-5 text-4xl font-black leading-[0.95] sm:text-5xl lg:text-6xl">
               Авторські вироби

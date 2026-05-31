@@ -7,8 +7,8 @@ const contacts = [
   },
   {
     label: "Email",
-    value: "gearcraft@gmail.com",
-    href: "mailto:gearcraft@gmail.com",
+    value: "gearrecraft@gmail.com",
+    href: "mailto:gearrecraft@gmail.com",
   },
   {
     label: "Phone",

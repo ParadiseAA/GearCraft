@@ -524,7 +524,7 @@ export default function AdminPage() {
       <main className="mx-auto max-w-[1320px] px-4 py-6 lg:px-6 lg:py-8">
         <section className="border-b border-[#eadfd3] pb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff7a1a]">
-            GearCraft admin
+            GearreCraft admin
           </p>
           <h1 className="mt-2 text-3xl font-black">Адмін-панель магазину</h1>
           <div className="mt-5 flex flex-wrap gap-2">

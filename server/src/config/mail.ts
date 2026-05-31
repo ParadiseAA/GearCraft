@@ -27,7 +27,7 @@ const getMailConfig = () => {
     port: Number(port),
     user: user as string,
     pass: pass as string,
-    from: process.env.MAIL_FROM || "GearCraft <noreply@gearcraft.test>",
+    from: process.env.MAIL_FROM || "GearreCraft <noreply@gearrecraft.test>",
   };
 };
 
@@ -55,11 +55,11 @@ export const sendPasswordResetEmail = async (input: {
   await transporter.sendMail({
     from: config.from,
     to: input.email,
-    subject: "Відновлення пароля GearCraft",
+    subject: "Відновлення пароля GearreCraft",
     text: `Ваш код для відновлення пароля: ${input.code}. Код дійсний 15 хвилин.`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-        <h2>Відновлення пароля GearCraft</h2>
+        <h2>Відновлення пароля GearreCraft</h2>
         <p>Ваш код для відновлення пароля:</p>
         <p style="font-size: 24px; font-weight: 700; letter-spacing: 4px;">${input.code}</p>
         <p>Код дійсний 15 хвилин. Якщо ви не запитували відновлення, просто ігноруйте цей лист.</p>

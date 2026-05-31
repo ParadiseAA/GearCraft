@@ -8,7 +8,7 @@ export default function SiteFooter() {
     <footer className="border-t border-[#3a2a1d] bg-[#171612] text-[#d8cfc4]">
       <div className="mx-auto grid max-w-[1320px] gap-10 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:px-6 lg:py-12">
         <div>
-          <h2 className="text-lg font-black text-white">GearCraft</h2>
+          <h2 className="text-lg font-black text-white">GearreCraft</h2>
           <p className="mt-3 max-w-xs text-sm leading-6 text-[#a99b8c]">
             Авторські вироби з металу та автодеталей для дому, декору й
             подарунків.
@@ -34,10 +34,10 @@ export default function SiteFooter() {
           <div className="mt-4 grid gap-3 text-sm text-[#a99b8c]">
             <p>Україна</p>
             <a
-              href="mailto:gearcraft@gmail.com"
+              href="mailto:gearrecraft@gmail.com"
               className="transition hover:text-[#ff9a4d]"
             >
-              gearcraft@gmail.com
+              gearrecraft@gmail.com
             </a>
             <a
               href="tel:+380441234567"
@@ -89,7 +89,7 @@ export default function SiteFooter() {
       </div>
 
       <div className="border-t border-[#2a211a] px-4 py-4 text-center text-xs text-[#7f7164]">
-        © Copyright {currentYear} GearCraft
+        © Copyright {currentYear} GearreCraft
       </div>
     </footer>
   );

@@ -26,11 +26,11 @@ interface ShopStore {
   clearCart: () => void;
 }
 
-const getFavoritesKey = (userId: string) => `gearcraft:user:${userId}:favorites`;
-const getCartKey = (userId: string) => `gearcraft:user:${userId}:cart`;
+const getFavoritesKey = (userId: string) => `gearrecraft:user:${userId}:favorites`;
+const getCartKey = (userId: string) => `gearrecraft:user:${userId}:cart`;
 const getMigrationKey = (userId: string) =>
-  `gearcraft:user:${userId}:shop-migrated`;
-const guestCartKey = "gearcraft:guest:cart";
+  `gearrecraft:user:${userId}:shop-migrated`;
+const guestCartKey = "gearrecraft:guest:cart";
 
 function getProductId(product: Product) {
   return product._id || product.id || "";

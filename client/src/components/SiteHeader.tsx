@@ -99,7 +99,7 @@ export default function SiteHeader({
         <NavLink to="/" className="flex shrink-0 items-center gap-3">
           <img
             src={logo}
-            alt="GearCraft"
+            alt="GearreCraft"
             className="h-9 w-auto object-contain"
           />
         </NavLink>

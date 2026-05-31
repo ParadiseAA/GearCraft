@@ -520,7 +520,7 @@ export default function AuthPage() {
 
         <div className="mt-5 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff9a4d]">
-            GearCraft
+            GearreCraft
           </p>
           <h1 className="mt-3 text-3xl font-black text-[#323232]">
             {tab === "login" && "Авторизація"}
