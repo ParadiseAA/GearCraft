@@ -28,6 +28,7 @@ export interface IProduct {
   updatedAt: Date;
 }
 
+// Перетворює рядок із PostgreSQL у формат товару, який очікує клієнтська частина.
 export const mapProduct = (row: Record<string, unknown>): IProduct => {
   const id = row.id as string;
   const sellerName = row.seller_name as string | undefined;
@@ -37,6 +38,7 @@ export const mapProduct = (row: Record<string, unknown>): IProduct => {
     id,
     _id: id,
     title: row.title as string,
+    // name і _id залишені для сумісності з компонентами, які можуть очікувати старі назви полів.
     name: row.title as string,
     description: row.description as string,
     descriptionUk: (row.description_uk as string | null) ?? undefined,
@@ -74,6 +76,7 @@ export const createProductRecord = async (input: {
   sellerId: string;
   images?: string[];
 }): Promise<IProduct> => {
+  // Додає новий товар у базу даних.
   const { rows } = await pool.query(
     `
       INSERT INTO products (
@@ -107,6 +110,7 @@ export const createProductRecord = async (input: {
 };
 
 export const findActiveProducts = async (): Promise<IProduct[]> => {
+  // Для каталогу повертаються тільки активні товари.
   const { rows } = await pool.query(`
     SELECT *
     FROM products
@@ -118,6 +122,7 @@ export const findActiveProducts = async (): Promise<IProduct[]> => {
 };
 
 export const findAllProducts = async (): Promise<IProduct[]> => {
+  // Для адміністратора повертаються всі товари, включно з неактивними.
   const { rows } = await pool.query(`
     SELECT *
     FROM products
@@ -131,6 +136,7 @@ export const findProductsPage = async (
   page: number,
   limit: number,
 ): Promise<{ products: IProduct[]; total: number; page: number; pages: number }> => {
+  // Пагінація обмежує кількість товарів на сторінці та рахує загальну кількість записів.
   const safePage = Math.max(page, 1);
   const safeLimit = Math.min(Math.max(limit, 1), 100);
   const offset = (safePage - 1) * safeLimit;
@@ -161,6 +167,7 @@ export const findProductsPage = async (
 export const findProductById = async (
   id: string,
 ): Promise<IProduct | null> => {
+  // Детальний запит також підтягує ім'я та email продавця.
   const { rows } = await pool.query(
     `
       SELECT
@@ -192,6 +199,7 @@ export const updateProductRecord = async (
     isActive: boolean;
   },
 ): Promise<IProduct | null> => {
+  // Оновлює всі основні поля товару і повертає оновлений запис.
   const { rows } = await pool.query(
     `
       UPDATE products
@@ -229,6 +237,7 @@ export const updateProductRecord = async (
 export const deleteProductRecord = async (
   id: string,
 ): Promise<IProduct | null> => {
+  // Видаляє товар за id і повертає видалений запис.
   const { rows } = await pool.query(
     `
       DELETE FROM products

@@ -10,28 +10,29 @@ import {
 } from "../controllers/authController";
 import { protect } from "../middleware/auth";
 
-// Створюємо окремий роутер для auth маршрутів
-// В app.ts він буде підключений з префіксом /api/auth
+// Окремий router групує всі маршрути, пов'язані з авторизацією.
+// У server/src/app.ts він підключається з префіксом /api/auth.
 const router = Router();
 
-// POST /api/auth/register — публічний маршрут, доступний всім
+// Реєстрація нового користувача.
 router.post("/register", register);
 
-// POST /api/auth/login — публічний маршрут, доступний всім
+// Вхід користувача в систему.
 router.post("/login", login);
 
-// POST /api/auth/forgot-password — генерує код і надсилає його на email через Mailtrap
+// Створення коду для відновлення пароля та надсилання його на email.
 router.post("/forgot-password", forgotPassword);
 
-// POST /api/auth/reset-password — перевіряє код і встановлює новий пароль
+// Перевірка коду відновлення і встановлення нового пароля.
 router.post("/reset-password", resetPassword);
 
-// GET /api/auth/me — захищений маршрут
-// protect спочатку перевіряє токен, і тільки потім викликає getMe
+// Отримання даних поточного користувача. Middleware protect спочатку перевіряє JWT-токен.
 router.get("/me", protect, getMe);
 
+// Оновлення профілю авторизованого користувача.
 router.put("/me", protect, updateMe);
 
+// Зміна пароля авторизованого користувача.
 router.put("/me/password", protect, changePassword);
 
 export default router;

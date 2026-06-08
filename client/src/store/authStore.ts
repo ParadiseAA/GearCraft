@@ -47,6 +47,7 @@ interface AuthStore {
   logout: () => void;
 }
 
+// Zustand-store зберігає стан авторизації та функції для роботи з акаунтом.
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   token: localStorage.getItem("token"),
@@ -55,6 +56,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   error: null,
 
   register: async (name, surname, email, password) => {
+    // Перед запитом вмикаємо завантаження і прибираємо попередню помилку.
     set({ isLoading: true, error: null });
 
     try {
@@ -65,6 +67,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         password,
       });
 
+      // Після реєстрації зберігаємо токен і прив'язуємо кошик до нового користувача.
       localStorage.setItem("token", data.token);
       await useShopStore.getState().setActiveUser(data.user.id);
       set({ user: data.user, token: data.token, isLoading: false });
@@ -78,6 +81,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   login: async (email, password) => {
+    // Надсилаємо email і пароль, а сервер повертає токен та дані користувача.
     set({ isLoading: true, error: null });
 
     try {
@@ -99,6 +103,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   updateProfile: async (input) => {
+    // Оновлює ім'я, прізвище та email поточного користувача.
     set({ isLoading: true, error: null });
 
     try {
@@ -116,6 +121,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   changePassword: async (currentPassword, newPassword) => {
+    // Сервер спочатку перевіряє старий пароль, а потім зберігає новий.
     set({ isLoading: true, error: null });
 
     try {
@@ -136,6 +142,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   initializeAuth: async () => {
+    // При старті додатка перевіряємо, чи є збережений токен авторизації.
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -153,6 +160,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
+      // Якщо токен дійсний, сервер повертає поточного користувача.
       const { data } = await api.get<User>("/auth/me");
       await useShopStore.getState().setActiveUser(data.id);
       set({
@@ -163,6 +171,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         error: null,
       });
     } catch {
+      // Якщо токен неправильний або застарів, очищаємо авторизацію.
       localStorage.removeItem("token");
       await useShopStore.getState().setActiveUser(null);
       set({
@@ -176,6 +185,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   logout: () => {
+    // Вихід із системи очищає токен, користувача і персональні дані магазину.
     localStorage.removeItem("token");
     void useShopStore.getState().setActiveUser(null);
     set({

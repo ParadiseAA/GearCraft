@@ -51,6 +51,7 @@ export interface IOrder {
   updatedAt: Date;
 }
 
+// Перетворює рядок із таблиці orders у зручний об'єкт замовлення для API.
 const mapOrder = (row: Record<string, unknown>): IOrder => ({
   id: row.id as string,
   userId: (row.user_id as string | null) ?? undefined,
@@ -101,8 +102,8 @@ export const createOrderRecord = async (input: {
   try {
     await client.query("BEGIN");
 
-    // Вся фінансова частина формується в транзакції: блокуємо товари,
-    // перевіряємо залишок, списуємо склад і рахуємо суми за цінами з бази.
+    // Уся фінансова частина виконується в транзакції:
+    // блокуємо товари, перевіряємо залишок, списуємо склад і рахуємо суми за цінами з бази.
     const orderItems: OrderItem[] = [];
 
     for (const item of input.items) {
@@ -204,6 +205,7 @@ export const createOrderRecord = async (input: {
 
     return mapOrder(rows[0]);
   } catch (error) {
+    // Якщо будь-який крок створення замовлення не вдався, усі зміни відкочуються.
     await client.query("ROLLBACK");
     throw error;
   } finally {
@@ -215,6 +217,7 @@ export const findOrdersPage = async (
   page: number,
   limit: number,
 ): Promise<{ orders: IOrder[]; total: number; page: number; pages: number }> => {
+  // Пагінація потрібна, щоб адмін-панель не завантажувала всі замовлення одразу.
   const safePage = Math.max(page, 1);
   const safeLimit = Math.min(Math.max(limit, 1), 100);
   const offset = (safePage - 1) * safeLimit;
@@ -245,6 +248,7 @@ export const findOrdersPage = async (
 export const findOrdersByCustomerEmail = async (
   email: string,
 ): Promise<IOrder[]> => {
+  // Допоміжний пошук замовлень за email покупця.
   const { rows } = await pool.query(
     `
       SELECT *
@@ -258,12 +262,11 @@ export const findOrdersByCustomerEmail = async (
   return rows.map(mapOrder);
 };
 
-// Нові замовлення шукаємо за user_id. Перевірка email лишається як fallback
-// для старих або гостьових замовлень, які ще не мали user_id.
 export const findOrdersByUser = async (input: {
   userId: string;
   email: string;
 }): Promise<IOrder[]> => {
+  // Нові замовлення шукаються за user_id, а email залишається fallback для старих або гостьових замовлень.
   const { rows } = await pool.query(
     `
       SELECT *
@@ -281,6 +284,7 @@ export const updateOrderStatusRecord = async (
   id: string,
   status: OrderStatus,
 ): Promise<IOrder | null> => {
+  // Оновлює статус замовлення і час останньої зміни.
   const { rows } = await pool.query(
     `
       UPDATE orders
@@ -295,6 +299,7 @@ export const updateOrderStatusRecord = async (
 };
 
 export const deleteOrderRecord = async (id: string): Promise<IOrder | null> => {
+  // Видаляє замовлення за id.
   const { rows } = await pool.query(
     `
       DELETE FROM orders

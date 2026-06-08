@@ -12,7 +12,7 @@ const uploadBufferToCloudinary = (file: Express.Multer.File) => {
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
+          reject(error ?? new Error("Не вдалося завантажити зображення"));
           return;
         }
 
@@ -26,7 +26,7 @@ const uploadBufferToCloudinary = (file: Express.Multer.File) => {
 
 export const uploadImage = async (req: AuthenticatedRequest, res: Response) => {
   if (!req.file) {
-    return res.status(400).json({ message: "Image file is required" });
+    return res.status(400).json({ message: "Файл зображення обов'язковий" });
   }
 
   const result = await uploadBufferToCloudinary(req.file);

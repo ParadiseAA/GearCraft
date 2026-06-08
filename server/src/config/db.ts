@@ -3,10 +3,12 @@ import { Pool } from "pg";
 
 const connectionString = process.env.DATABASE_URL;
 
+// Без адреси бази даних сервер не зможе працювати, тому одразу зупиняємо запуск.
 if (!connectionString) {
-  throw new Error("DATABASE_URL is not set");
+  throw new Error("DATABASE_URL не встановлено");
 }
 
+// Pool керує підключеннями до PostgreSQL і повторно використовує їх для запитів.
 const pool = new Pool({
   connectionString,
   ssl:
@@ -19,8 +21,10 @@ const pool = new Pool({
 
 const connectDB = async (): Promise<void> => {
   try {
+    // Розширення pgcrypto потрібне для генерації UUID прямо в PostgreSQL.
     await pool.query("CREATE EXTENSION IF NOT EXISTS pgcrypto");
 
+    // Таблиця користувачів зберігає облікові записи, ролі та дані для відновлення пароля.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -48,6 +52,7 @@ const connectDB = async (): Promise<void> => {
       ON users(password_reset_code)
     `);
 
+    // Таблиця товарів містить опис, ціну, категорію, залишок на складі та продавця.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -102,6 +107,7 @@ const connectDB = async (): Promise<void> => {
       ON products USING GIN (to_tsvector('simple', title || ' ' || description))
     `);
 
+    // Таблиця відгуків прив'язує оцінку та коментар до конкретного товару і користувача.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reviews (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -121,6 +127,7 @@ const connectDB = async (): Promise<void> => {
       CREATE INDEX IF NOT EXISTS reviews_user_id_idx ON reviews(user_id)
     `);
 
+    // Таблиця обраного зберігає зв'язок користувача з товарами, які він додав у favorites.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS favorites (
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -133,6 +140,7 @@ const connectDB = async (): Promise<void> => {
       CREATE INDEX IF NOT EXISTS favorites_user_id_idx ON favorites(user_id)
     `);
 
+    // Таблиця кошика зберігає товари та їх кількість для авторизованих користувачів.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS cart_items (
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -147,6 +155,7 @@ const connectDB = async (): Promise<void> => {
       CREATE INDEX IF NOT EXISTS cart_items_user_id_idx ON cart_items(user_id)
     `);
 
+    // Таблиця замовлень зберігає контактні дані, доставку, оплату, товари та статус.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

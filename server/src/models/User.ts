@@ -15,6 +15,7 @@ export interface IUser {
   updatedAt: Date;
 }
 
+// Перетворює назви полів із PostgreSQL у формат, який зручно використовувати в TypeScript.
 const mapUser = (row: Record<string, unknown>): IUser => ({
   id: row.id as string,
   name: row.name as string,
@@ -31,6 +32,7 @@ const mapUser = (row: Record<string, unknown>): IUser => ({
 export const findUserByEmail = async (
   email: string,
 ): Promise<IUser | null> => {
+  // Email приводиться до нижнього регістру, щоб уникнути дублікатів з різним написанням.
   const { rows } = await pool.query(
     "SELECT * FROM users WHERE email = LOWER($1) LIMIT 1",
     [email],
@@ -40,6 +42,7 @@ export const findUserByEmail = async (
 };
 
 export const findUserById = async (id: string): Promise<IUser | null> => {
+  // Пошук користувача за унікальним id.
   const { rows } = await pool.query("SELECT * FROM users WHERE id = $1 LIMIT 1", [
     id,
   ]);
@@ -54,6 +57,7 @@ export const createUser = async (input: {
   password: string;
   role?: UserRole;
 }): Promise<IUser> => {
+  // Створює нового користувача і повертає повний запис із бази.
   const { rows } = await pool.query(
     `
       INSERT INTO users (name, surname, email, password, role)
@@ -72,6 +76,7 @@ export const updateUserProfile = async (input: {
   surname: string;
   email: string;
 }): Promise<IUser> => {
+  // Оновлює персональні дані користувача.
   const { rows } = await pool.query(
     `
       UPDATE users
@@ -93,6 +98,7 @@ export const updateUserPassword = async (input: {
   userId: string;
   password: string;
 }): Promise<void> => {
+  // Записує новий hash пароля.
   await pool.query(
     `
       UPDATE users
@@ -110,7 +116,7 @@ export const savePasswordResetCode = async (input: {
   code: string;
   expiresAt: Date;
 }): Promise<void> => {
-  // Зберігаємо код і час життя. Після expiresAt код вважається недійсним.
+  // Зберігає код і час його дії. Після expiresAt код вважається недійсним.
   await pool.query(
     `
       UPDATE users
@@ -127,6 +133,7 @@ export const savePasswordResetCode = async (input: {
 export const findUserByPasswordResetCode = async (
   code: string,
 ): Promise<IUser | null> => {
+  // Шукає користувача за кодом відновлення пароля.
   const { rows } = await pool.query(
     `
       SELECT *
@@ -144,7 +151,7 @@ export const updatePasswordAndClearResetCode = async (input: {
   userId: string;
   password: string;
 }): Promise<void> => {
-  // Одним запитом змінюємо пароль і видаляємо reset-код, щоб його не можна було використати повторно.
+  // Одним запитом змінює пароль і видаляє reset-код, щоб його не можна було використати повторно.
   await pool.query(
     `
       UPDATE users

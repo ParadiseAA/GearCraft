@@ -23,7 +23,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/shop", shopRoutes);
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "Server is running!" });
+  res.json({ status: "OK", message: "Сервер працює" });
 });
 
 app.use("/api/products", productRoutes);

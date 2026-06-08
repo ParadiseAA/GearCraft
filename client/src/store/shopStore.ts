@@ -32,10 +32,12 @@ const getMigrationKey = (userId: string) =>
   `gearrecraft:user:${userId}:shop-migrated`;
 const guestCartKey = "gearrecraft:guest:cart";
 
+// У різних частинах проєкту товар може мати id або _id, тому беремо доступний варіант.
 function getProductId(product: Product) {
   return product._id || product.id || "";
 }
 
+// Безпечне читання localStorage: якщо дані пошкоджені, повертається запасне значення.
 function readStorage<T>(key: string, fallback: T): T {
   try {
     const value = localStorage.getItem(key);
@@ -49,10 +51,12 @@ function writeStorage<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+// Кількість товару береться з countInStock або stock і не може бути меншою за нуль.
 function getProductStock(product: Product) {
   return Math.max(0, product.countInStock ?? product.stock ?? 0);
 }
 
+// Нормалізація кошика не дозволяє зберегти кількість більшу, ніж є на складі.
 const normalizeCart = (cart: CartItem[]) =>
   cart
     .map((item) => ({
@@ -65,6 +69,7 @@ const saveGuestCart = (cart: CartItem[]) => {
   writeStorage(guestCartKey, normalizeCart(cart));
 };
 
+// Переносить старі локальні обрані товари й кошик користувача на сервер.
 const syncLegacyStorage = async (userId: string) => {
   if (localStorage.getItem(getMigrationKey(userId))) return;
 
@@ -84,6 +89,7 @@ const syncLegacyStorage = async (userId: string) => {
 };
 
 function getCartSyncItems(cart: CartItem[]) {
+  // Однакові товари об'єднуються, щоб сервер отримав унікальні productId з підсумковою кількістю.
   const cartQuantities = new Map<string, number>();
 
   for (const item of cart) {
@@ -107,6 +113,7 @@ function getCartSyncItems(cart: CartItem[]) {
 }
 
 const syncGuestCart = async () => {
+  // Якщо гість додав товари в кошик, після входу вони переносяться в акаунт.
   const guestCart = readStorage<CartItem[]>(guestCartKey, []);
   const cartItems = getCartSyncItems(guestCart);
 
@@ -125,6 +132,7 @@ const applyServerState = (data: ShopStateResponse) => ({
   isSyncing: false,
 });
 
+// Zustand-store відповідає за обрані товари, кошик і синхронізацію цих даних із сервером.
 export const useShopStore = create<ShopStore>((set, get) => ({
   activeUserId: null,
   favorites: [],
@@ -132,6 +140,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   isSyncing: false,
 
   setActiveUser: async (userId) => {
+    // Якщо користувач не авторизований, працюємо тільки з гостьовим кошиком у localStorage.
     if (!userId) {
       set({
         activeUserId: null,
@@ -145,6 +154,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     set({ activeUserId: userId, isSyncing: true });
 
     try {
+      // Після входу синхронізуємо старі локальні дані, гостьовий кошик і актуальний стан із сервера.
       await syncLegacyStorage(userId);
       await syncGuestCart();
       const { data } = await api.get<ShopStateResponse>("/shop");
@@ -159,6 +169,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   },
 
   toggleFavorite: (product) => {
+    // Обрані товари змінюються одразу в інтерфейсі, а потім синхронізуються із сервером.
     const userId = get().activeUserId;
     if (!userId) return;
 
@@ -181,6 +192,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
         }
       })
       .catch(() => {
+        // Якщо сервер повернув помилку, повертаємо попередній список обраних.
         if (get().activeUserId === userId) {
           set({ favorites: previousFavorites });
         }
@@ -191,6 +203,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     get().favorites.some((favorite) => getProductId(favorite) === productId),
 
   addToCart: (product) => {
+    // Додавання в кошик враховує залишок товару на складі.
     const userId = get().activeUserId;
 
     const productId = getProductId(product);
@@ -213,6 +226,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
     set({ cart });
 
     if (!userId) {
+      // Для гостя кошик зберігається локально, без запиту на сервер.
       saveGuestCart(cart);
       return;
     }
@@ -232,6 +246,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   },
 
   removeFromCart: (productId) => {
+    // Видаляємо товар із кошика локально і дублюємо зміну на сервері для авторизованого користувача.
     const userId = get().activeUserId;
 
     const previousCart = get().cart;
@@ -261,6 +276,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   },
 
   updateQuantity: (productId, quantity) => {
+    // Кількість товару обмежується діапазоном від 1 до доступного залишку.
     const userId = get().activeUserId;
 
     const previousCart = get().cart;
@@ -303,6 +319,7 @@ export const useShopStore = create<ShopStore>((set, get) => ({
   },
 
   clearCart: () => {
+    // Повне очищення кошика: для гостя чистимо localStorage, для користувача - серверний кошик.
     const userId = get().activeUserId;
 
     const previousCart = get().cart;

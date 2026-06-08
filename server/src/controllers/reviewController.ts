@@ -23,13 +23,13 @@ export const createProductReview = async (
   const comment = String(req.body.comment ?? "").trim();
 
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return res.status(400).json({ message: "Rating must be from 1 to 5" });
+    return res.status(400).json({ message: "Оцінка має бути від 1 до 5" });
   }
 
   if (!comment || comment.length > 1000) {
     return res
       .status(400)
-      .json({ message: "Comment is required and must be up to 1000 characters" });
+      .json({ message: "Коментар обов'язковий і має містити до 1000 символів" });
   }
 
   try {
@@ -43,7 +43,7 @@ export const createProductReview = async (
     res.status(201).json(result);
   } catch (error) {
     if (error instanceof Error && error.message === "Product not found") {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Товар не знайдено" });
     }
 
     throw error;
@@ -60,7 +60,7 @@ export const deleteReview = async (req: AuthenticatedRequest, res: Response) => 
     res.json(result);
   } catch (error) {
     if (error instanceof Error && error.message === "Review not found") {
-      return res.status(404).json({ message: "Review not found" });
+      return res.status(404).json({ message: "Відгук не знайдено" });
     }
 
     throw error;
