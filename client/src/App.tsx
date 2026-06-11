@@ -17,6 +17,7 @@ import ProductPage from "./pages/ProductPage";
 import UserOrdersPage from "./pages/UserOrdersPage";
 import { useAuthStore } from "./store/authStore";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ShopNotice from "./components/ShopNotice";
 
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Routes>
+      <ShopNotice />
       <SiteFooter />
     </BrowserRouter>
   );

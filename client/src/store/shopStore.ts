@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import axios from "axios";
 import api from "../services/api";
 import type { Product } from "../types/product";
 
@@ -12,11 +13,18 @@ interface ShopStateResponse {
   cart: CartItem[];
 }
 
+interface ShopNotice {
+  id: number;
+  type: "error";
+  message: string;
+}
+
 interface ShopStore {
   activeUserId: string | null;
   favorites: Product[];
   cart: CartItem[];
   isSyncing: boolean;
+  notice: ShopNotice | null;
   setActiveUser: (userId: string | null) => Promise<void>;
   toggleFavorite: (product: Product) => void;
   isFavorite: (productId: string) => boolean;
@@ -24,6 +32,7 @@ interface ShopStore {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  clearNotice: (noticeId?: number) => void;
 }
 
 const getFavoritesKey = (userId: string) => `gearrecraft:user:${userId}:favorites`;
@@ -132,12 +141,31 @@ const applyServerState = (data: ShopStateResponse) => ({
   isSyncing: false,
 });
 
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError<{ message?: string }>(error)) {
+    const serverMessage = error.response?.data?.message;
+    if (serverMessage) {
+      const suffix = /[.!?]$/.test(serverMessage) ? serverMessage : `${serverMessage}.`;
+      return `${fallback} ${suffix}`;
+    }
+  }
+
+  return fallback;
+};
+
+const createErrorNotice = (message: string): ShopNotice => ({
+  id: Date.now(),
+  type: "error",
+  message,
+});
+
 // Zustand-store відповідає за обрані товари, кошик і синхронізацію цих даних із сервером.
 export const useShopStore = create<ShopStore>((set, get) => ({
   activeUserId: null,
   favorites: [],
   cart: [],
   isSyncing: false,
+  notice: null,
 
   setActiveUser: async (userId) => {
     // Якщо користувач не авторизований, працюємо тільки з гостьовим кошиком у localStorage.
@@ -191,10 +219,17 @@ export const useShopStore = create<ShopStore>((set, get) => ({
           set(applyServerState(data));
         }
       })
-      .catch(() => {
+      .catch((error) => {
         // Якщо сервер повернув помилку, повертаємо попередній список обраних.
         if (get().activeUserId === userId) {
-          set({ favorites: previousFavorites });
+          const fallback = exists
+            ? "Не вдалося прибрати товар з обраного. Спробуйте ще раз."
+            : "Не вдалося додати товар в обране.";
+
+          set({
+            favorites: previousFavorites,
+            notice: createErrorNotice(getApiErrorMessage(error, fallback)),
+          });
         }
       });
   },
@@ -238,9 +273,17 @@ export const useShopStore = create<ShopStore>((set, get) => ({
           set(applyServerState(data));
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (get().activeUserId === userId) {
-          set({ cart: previousCart });
+          set({
+            cart: previousCart,
+            notice: createErrorNotice(
+              getApiErrorMessage(
+                error,
+                "Не вдалося додати товар у кошик.",
+              ),
+            ),
+          });
         }
       });
   },
@@ -268,9 +311,17 @@ export const useShopStore = create<ShopStore>((set, get) => ({
           set(applyServerState(data));
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (get().activeUserId === userId) {
-          set({ cart: previousCart });
+          set({
+            cart: previousCart,
+            notice: createErrorNotice(
+              getApiErrorMessage(
+                error,
+                "Не вдалося видалити товар з кошика. Спробуйте ще раз.",
+              ),
+            ),
+          });
         }
       });
   },
@@ -311,9 +362,17 @@ export const useShopStore = create<ShopStore>((set, get) => ({
           set(applyServerState(data));
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (get().activeUserId === userId) {
-          set({ cart: previousCart });
+          set({
+            cart: previousCart,
+            notice: createErrorNotice(
+              getApiErrorMessage(
+                error,
+                "Не вдалося оновити кількість товару. Спробуйте ще раз.",
+              ),
+            ),
+          });
         }
       });
   },
@@ -337,11 +396,26 @@ export const useShopStore = create<ShopStore>((set, get) => ({
           set(applyServerState(data));
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (get().activeUserId === userId) {
-          set({ cart: previousCart });
+          set({
+            cart: previousCart,
+            notice: createErrorNotice(
+              getApiErrorMessage(
+                error,
+                "Не вдалося очистити кошик. Спробуйте ще раз.",
+              ),
+            ),
+          });
         }
       });
+  },
+
+  clearNotice: (noticeId) => {
+    const currentNotice = get().notice;
+    if (!currentNotice || (noticeId && currentNotice.id !== noticeId)) return;
+
+    set({ notice: null });
   },
 }));
 
