@@ -1,0 +1,3 @@
+"id","name","surname","email","password","role","created_at","updated_at","password_reset_code","password_reset_expires"
+"8109fa56-d230-434e-a0f2-feb1fe3620e4","Скумбрія","Юзерович","usercomfy1006@gmail.com","$2b$10$MUmjI9JPEWoW1BgZucuFQupl6Te.bchGkHfKZaZAboiwPBfJdsLLa","user","2026-05-31 09:17:02.659571+00","2026-05-31 09:17:02.659571+00",,
+"eb4a0c6d-bf06-48f1-8e9d-01330f67285f","Андрій","Козачухно","kozacuhnoa@gmail.com","$2b$10$EQeEmdWx9079LO7JhDBkAOlSXcT3gU6e90z1UHU2kgIbW11OVPM2e","admin","2026-05-31 08:53:50.673783+00","2026-06-02 07:34:00.876636+00",,
